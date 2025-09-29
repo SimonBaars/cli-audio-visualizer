@@ -11,13 +11,13 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
     # Clear area every frame
     clear_area(stdscr, y_offset, height, width)
     
-    # Get waveform
-    num_points = 120  # Number of points around the circle
-    if len(audio_data) > num_points:
-        step = len(audio_data) // num_points
-        waveform = audio_data[::step][:num_points]
+    # Get waveform  
+    num_samples = 60  # Sample points for waveform data
+    if len(audio_data) > num_samples:
+        step = len(audio_data) // num_samples
+        waveform = audio_data[::step][:num_samples]
     else:
-        waveform = np.pad(audio_data, (0, num_points - len(audio_data)), 'constant')
+        waveform = np.pad(audio_data, (0, num_samples - len(audio_data)), 'constant')
     
     waveform = apply_smoothing_func(waveform, True)
     if np.max(np.abs(waveform)) > 0:
@@ -27,12 +27,17 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
     center_x = width // 2
     base_radius = min(height // 2 - 2, width // 4)
     
-    # Draw full circle (0 to 2π)
-    for i in range(num_points):
-        angle = (i / num_points) * 2 * np.pi
+    # Calculate perimeter to determine how many points we need
+    perimeter = int(2 * np.pi * base_radius * 1.5)  # Overestimate for good coverage
+    num_draw_points = max(perimeter, 200)  # At least 200 points for smooth circle
+    
+    # Draw full circle with many points for smoothness
+    for i in range(num_draw_points):
+        angle = (i / num_draw_points) * 2 * np.pi
         
-        # Modulate radius by waveform
-        wave_offset = waveform[i] * base_radius * 0.4
+        # Sample waveform (interpolate between samples)
+        waveform_idx = int((i / num_draw_points) * num_samples) % num_samples
+        wave_offset = waveform[waveform_idx] * base_radius * 0.4
         radius = base_radius + wave_offset
         
         # Calculate position
@@ -40,13 +45,13 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
         y = int(center_y + radius * np.sin(angle) * 0.5)  # Aspect ratio correction
         
         # Get color
-        position = i / max(1, num_points - 1)
+        position = i / max(1, num_draw_points - 1)
         intensity = abs(wave_offset / base_radius) if base_radius > 0 else 0
         color = get_color_func(intensity, position)
         
-        # Draw point
+        # Draw point (use █ for better fill)
         if 0 <= x < width and 0 <= y < height:
             try:
-                stdscr.addch(y + y_offset, x, ord('●'), color)
+                stdscr.addch(y + y_offset, x, ord('█'), color)
             except curses.error:
                 pass
