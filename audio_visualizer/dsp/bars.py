@@ -74,4 +74,32 @@ def compute_frequency_bars(audio_data: np.ndarray, num_bars: int, fft_size: int 
     if max_val > 0:
         bar_vals = bar_vals / max_val
     bar_vals = np.power(bar_vals, 0.7, where=bar_vals>0, out=bar_vals)
+
+    # Adaptive spatial smoothing: higher-index (higher-frequency) bars can be
+    # noisier / bumpier due to lower absolute energy and boosted tilt. We
+    # apply a progressively wider local mean filter and blend it in more for
+    # the upper portion of the spectrum. This preserves low-frequency detail
+    # (attack/body) while evening out the brittle high end.
+    n = len(bar_vals)
+    if n > 8:
+        original = bar_vals.copy()
+        smoothed = bar_vals.copy()
+        for i in range(n):
+            frac = i / max(1, n - 1)
+            # Window grows from 0 (no neighbors) to up to 4 neighbors each side
+            half_win = int(1 + frac * 4)  # 1..5
+            if half_win <= 1:
+                continue
+            lo = max(0, i - half_win)
+            hi = min(n, i + half_win + 1)
+            local_mean = np.mean(original[lo:hi])
+            # Blend amount increases toward high end (up to 65%)
+            blend = 0.15 + 0.5 * (frac ** 1.2)
+            smoothed[i] = (1 - blend) * original[i] + blend * local_mean
+        bar_vals = smoothed
+
+        # Re-normalize after smoothing to keep full 0..1 dynamic range
+        mx = np.max(bar_vals)
+        if mx > 0:
+            bar_vals /= mx
     return bar_vals
