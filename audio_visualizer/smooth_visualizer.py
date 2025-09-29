@@ -16,7 +16,8 @@ class SmoothVisualizer:
         self.running = True
         self.current_mode = 0
         self.current_color_scheme = 0
-        self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
+    # Added 'bars_simple' as an ASCII-friendly alternative when block glyph coloring is unreliable
+    self.modes = ["bars", "bars_simple", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
         self.color_schemes = color_mod.SCHEMES
         
         # Initialize curses
@@ -157,6 +158,9 @@ class SmoothVisualizer:
                 if mode == "bars":
                     visualizers.draw_bars(self.stdscr, audio_data, viz_height, viz_width, y_offset,
                                         self._get_color, self._apply_smoothing, self.viz_state)
+                elif mode == "bars_simple":
+                    visualizers.draw_bars_simple(self.stdscr, audio_data, viz_height, viz_width, y_offset,
+                                                  self._get_color, self._apply_smoothing, self.viz_state)
                 elif mode == "spectrum":
                     visualizers.draw_spectrum(self.stdscr, audio_data, viz_height, viz_width, y_offset,
                                             self._get_color, self._apply_smoothing, self.viz_state)

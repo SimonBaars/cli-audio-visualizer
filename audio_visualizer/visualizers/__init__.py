@@ -1,6 +1,7 @@
 """Visualization modules."""
 
 from .bars import draw_bars
+from .bars_simple import draw_bars_simple
 from .spectrum import draw_spectrum
 from .waveform import draw_waveform
 from .mirror_circular import draw_mirror_circular
@@ -9,6 +10,7 @@ from .levels import draw_levels
 
 __all__ = [
     'draw_bars',
+    'draw_bars_simple',
     'draw_spectrum',
     'draw_waveform',
     'draw_mirror_circular',
