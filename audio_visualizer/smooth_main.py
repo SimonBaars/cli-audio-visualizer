@@ -1,10 +1,10 @@
-"""Main entry point using parec audio capture and smooth visualizer."""
+"""Main entry point using cross-platform audio capture abstraction."""
 
 import curses
 import sys
 import signal
 import time
-from .parec_audio import ParecAudioCapture
+from .audio_capture import create_audio_capture
 from .smooth_visualizer import SmoothVisualizer
 
 
@@ -67,7 +67,7 @@ class SmoothAudioVisualizerApp:
 
 def main():
     """Entry point for smooth visualizer (silent startup)."""
-    audio_capture = ParecAudioCapture(sample_rate=44100, chunk_size=1024)
+    audio_capture = create_audio_capture(sample_rate=44100, chunk_size=1024)
     
     def _run(stdscr):
         app = SmoothAudioVisualizerApp(stdscr)

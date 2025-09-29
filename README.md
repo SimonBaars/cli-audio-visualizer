@@ -1,6 +1,6 @@
 # CLI Audio Visualizer
 
-Real‑time, flashy, terminal audio visualization powered by PulseAudio / PipeWire monitor capture and a bunch of lovingly over‑tuned DSP & effects.
+Real‑time, flashy, terminal audio visualization powered by system audio capture (PulseAudio/PipeWire on Linux, WASAPI loopback on Windows, sounddevice input/loopback on macOS) and a bunch of lovingly over‑tuned DSP & effects.
 
 ## ✨ Highlights
 
@@ -57,13 +57,22 @@ python visualizer.py
 Dependencies: `numpy`, `rich` (for tooling), `colorama`, `sounddevice` (optional / future), standard `curses`.
 
 ## 🔊 Audio Capture Notes
-The app auto‑detects a monitor source. To inspect manually:
+Platform backends:
+* Linux: `parec` (PulseAudio / PipeWire monitor) – auto-detects a *monitor* source.
+* Windows: WASAPI loopback via `sounddevice` (captures system output if available).
+* macOS: `sounddevice` input – tries to locate a virtual loopback device (BlackHole/Loopback). If none found, falls back to default input (microphone).
+
+Linux – inspect monitor sources manually:
 
 ```bash
 pactl list sources short | grep monitor
 ```
 
 If nothing appears, enable monitor profiles in your sound settings or PipeWire config.
+
+Windows – ensure an output device supports loopback (most do). No extra setup typically required.
+
+macOS – to capture system output directly, install a virtual device like [BlackHole](https://github.com/ExistentialAudio/BlackHole) and set it as an output (or aggregate). Otherwise you'll just see mic input.
 
 ## 🧪 Snapshots / Analysis
 Snapshots land in `snapshots/` and include:
