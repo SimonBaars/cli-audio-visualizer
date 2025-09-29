@@ -10,7 +10,6 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 - **Particles & Fun**: Orbiting sparks, pulsing inner ring, radial rays, halo dots, starfield burst particles.
 - **ASCII Toggle**: Instantly switch to minimal glyphs for compatibility or taste.
 - **Persistent Config**: Last mode, color scheme, EQ mode, ASCII flag auto‑restored (`config.json`).
--<!-- Snapshot feature removed: S now just saves config -->
 - **Silent Startup**: No console spam unless there’s an error.
 
 ## 🎨 Color Schemes
@@ -25,7 +24,7 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 | W | Cycle Adaptive EQ: off → medium (EQ~ default) → strong (EQ+) |
 | (removed) | Former F (tilt flatten) — now always uses balanced spectrum compensation |
 | B | Toggle ASCII/simple glyphs |
-| S | Save config (was Snapshot) |
+| S | Save config |
 | P | Persist config immediately |
 | Q / ESC | Quit |
 
