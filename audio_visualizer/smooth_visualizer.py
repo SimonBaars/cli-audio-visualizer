@@ -173,9 +173,9 @@ class SmoothVisualizer:
                     visualizers.base.clear_area(self.stdscr, y_offset, viz_height, viz_width)
                     self.mode_changed = False
 
-                # Draw background first; mark so modes that do full clear can skip
-                draw_background(self.stdscr, viz_width, viz_height, self.viz_state, self.background_index, self._get_color)
-                self.viz_state['background_drawn'] = True
+                # Background strategy: for radial_burst draw before (full), others overlay after
+                if self.modes[self.current_mode] == 'radial_burst':
+                    draw_background(self.stdscr, viz_width, viz_height, self.viz_state, self.background_index, self._get_color, overlay=False)
                 
                 # Adaptive tilt factor for frequency distribution balancing
                 # Adjust after obtaining bars in modes using frequency bars
@@ -204,6 +204,10 @@ class SmoothVisualizer:
                     visualizers.draw_radial_burst(self.stdscr, audio_data, viz_height, viz_width, y_offset,
                                                   self._get_color, self._apply_smoothing, self.viz_state)
             
+            # Overlay background for non-radial modes AFTER drawing so it doesn't get cleared
+            if self.modes[self.current_mode] != 'radial_burst':
+                draw_background(self.stdscr, viz_width, viz_height, self.viz_state, self.background_index, self._get_color, overlay=True)
+
             self.prev_height = height
             self.prev_width = width
             self.stdscr.refresh()
