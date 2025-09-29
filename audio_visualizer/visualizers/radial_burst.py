@@ -51,23 +51,47 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
     if particles is None:
         particles = []
 
-    # Weighted energy: emphasize lows & mids gently, suppress constant hiss
+    # Weighted broadband energy (slightly emphasize musical fundamentals 80–800 Hz range)
     if len(bands):
         idx = np.linspace(0, 1, len(bands))
-        w = 0.9 - 0.4 * (idx ** 1.3)  # slightly more weight to lower half
-        w /= w.sum()
+        # Emphasize lower mids more than extreme sub or hissy highs
+        # Shape: small dip at very low, rise through low-mid, gentle fall toward highs
+        shape = 0.75 + 0.55 * np.exp(-((idx - 0.25) ** 2) / 0.08)  # Gaussian bump around 0.25
+        w = shape / shape.sum()
         energy = float(np.dot(bands, w))
     else:
         energy = 0.0
 
-    # Smoothed macro energy envelope for calmer behavior
+    # Two envelopes: macro (slow) & fast (transient sensitive)
     macro_e = state.get('macro_energy', energy)
-    macro_e = 0.97 * macro_e + 0.03 * energy
+    macro_e = 0.94 * macro_e + 0.06 * energy  # quicker adaptation for music variance
     state['macro_energy'] = macro_e
+    fast_e = state.get('fast_energy', energy)
+    fast_e = 0.60 * fast_e + 0.40 * energy
+    state['fast_energy'] = fast_e
 
-    # Spawn count lowered for chill vibe; slight exponential response to peaks
-    spawn_count = int(1 + (macro_e ** 0.8) * 18)
-    spawn_count = min(spawn_count, 40)
+    # Transient = fast overshoot of macro; clamp floor
+    transient = max(0.0, fast_e - macro_e * 1.03)
+    # Normalize transient roughly into 0..1 domain by scaling relative to (macro+epsilon)
+    base_level = macro_e + 1e-6
+    transient_norm = min(1.5, transient / (base_level * 0.6 + 1e-6))  # allow >1 then cap
+
+    # Quiet gating: if macro very low and no transient, almost no spawn
+    quiet = macro_e < 0.02 and transient_norm < 0.15
+
+    # Base spawn from macro (calm baseline)
+    base_spawn = 0 if quiet else int((macro_e ** 0.85) * 14)
+    # Extra burst spawn from transient energy (stronger accent on kicks/snares)
+    burst_spawn = 0 if quiet else int(transient_norm ** 0.9 * 30)
+    spawn_count = base_spawn + burst_spawn
+    if transient_norm > 0.9:
+        # Additional pop on very sharp transients
+        spawn_count += 6
+    spawn_count = min(spawn_count, 55)
+    # Occasionally keep at least 1 particle so scene doesn't freeze totally
+    if spawn_count == 0 and (state.get('frame_counter', 0) % 22 == 0):
+        spawn_count = 1
+    state['frame_counter'] = state.get('frame_counter', 0) + 1
     rng = np.random.random
     # Small global drift (slowly rotating field)
     drift_angle = state.get('drift_angle', 0.0) + 0.002
@@ -78,17 +102,21 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
     # Derive per-band speed bias (higher bands add shimmer)
     high_energy = float(np.mean(bands[int(len(bands)*0.65):])) if len(bands) else 0.0
     shimmer = (high_energy ** 0.8)
+    # Combine influence factors for speed & brightness
+    speed_transient_boost = 0.4 * transient_norm
 
     for _ in range(spawn_count):
         ang = rng() * 2 * np.pi
-        # Base speed tempered for chill; add subtle shimmer modulation
-        base_speed = 0.25 + rng() * 0.55 + macro_e * 0.6 + shimmer * 0.3
+        # Base speed + macro scaling + shimmer + transient pop
+        base_speed = 0.20 + rng() * 0.45 + macro_e * 0.55 + shimmer * 0.25 + speed_transient_boost
         vx = np.cos(ang) * base_speed + drift_dx
         vy = (np.sin(ang) * base_speed * 0.6) + drift_dy
         # Lifetime longer for slower calm motion
         max_life = int((width + height) / (base_speed * 1.4) * (0.55 + rng() * 0.4))
         max_life = max(40, min(260, max_life))
-        particles.append([cx + 0.0, cy + 0.0, vx, vy, 0, max_life])
+        # Store an extra burst factor (for rendering intensity) derived from transient
+        burst_factor = min(1.0, transient_norm * (0.7 + 0.6 * rng()))
+        particles.append([cx + 0.0, cy + 0.0, vx, vy, 0, max_life, burst_factor])
 
     # Update particles
     new_particles = []
@@ -112,8 +140,13 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
         b = max(0.0, 1.0 - life_ratio)
         # Softer twinkle; modulated by shimmer (high freq energy)
         twinkle = 0.4 + 0.3 * np.sin(p[4] * (0.25 + 0.4 * shimmer) + p[0] * 0.05)
-        intensity = min(1.0, b * (0.6 + twinkle))
-        color = get_color_func(intensity * 0.9 + shimmer * 0.1, p[0] / max(1, width - 1))
+        burst_factor = p[6] if len(p) > 6 else 0.0
+        # Early life emphasis for burst particles
+        early = 1.0 if p[4] < 6 else np.exp(- (p[4]-6) * 0.05)
+        intensity = min(1.0, b * (0.55 + twinkle) * (1.0 + burst_factor * 0.9 * early))
+        # Slight hue/position modulation by burst factor not implemented (color func handles position)
+        color = get_color_func(intensity * (0.85 + 0.15 * burst_factor) + shimmer * 0.1,
+                               p[0] / max(1, width - 1))
         x_i = int(p[0])
         y_i = int(p[1])
         if 0 <= x_i < width and 0 <= y_i < height:
