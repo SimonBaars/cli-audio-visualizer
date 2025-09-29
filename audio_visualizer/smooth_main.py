@@ -30,8 +30,12 @@ class SmoothAudioVisualizerApp:
             self.visualizer = SmoothVisualizer(self.stdscr)
             self.audio_capture.start()
             
-            # Main loop
+            # Main loop - 60 FPS target
+            frame_time = 1.0 / 60.0
+            
             while self.running:
+                frame_start = time.time()
+                
                 # Get audio data
                 audio_data = self.audio_capture.get_audio_data()
                 
@@ -43,8 +47,10 @@ class SmoothAudioVisualizerApp:
                 if not self.visualizer.handle_input():
                     break
                 
-                # Small delay for ~60 FPS
-                time.sleep(0.016)
+                # Maintain frame rate
+                elapsed = time.time() - frame_start
+                if elapsed < frame_time:
+                    time.sleep(frame_time - elapsed)
         
         except Exception as e:
             curses.endwin()
@@ -67,7 +73,7 @@ def main():
     print("="*70)
     print()
     
-    audio_capture = ParecAudioCapture(sample_rate=44100, chunk_size=2048)
+    audio_capture = ParecAudioCapture(sample_rate=44100, chunk_size=1024)
     
     if not audio_capture.using_monitor:
         print("\n⚠️  WARNING: Not using monitor source!")

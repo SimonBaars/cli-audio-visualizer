@@ -13,28 +13,31 @@ class SmoothVisualizer:
         self.stdscr = stdscr
         self.running = True
         self.current_mode = 0
-        self.modes = ["bars", "spectrum", "waveform", "blocks"]
+        self.modes = ["bars", "spectrum", "mirror_circular", "waveform"]
         
         # Initialize curses
         curses.curs_set(0)  # Hide cursor
         curses.use_default_colors()
         stdscr.nodelay(1)
-        stdscr.timeout(16)
+        stdscr.timeout(0)  # Non-blocking
         
         # Initialize colors
         self._init_colors()
         
-        # Smoothing
-        self.smoothing_factor = 0.8
+        # Smoothing - reduced for more responsiveness
+        self.smoothing_factor = 0.6
         self.previous_values = None
         
         # FFT parameters
-        self.fft_size = 2048
+        self.fft_size = 4096  # Larger for better frequency resolution
         
         # Store previous frame to avoid redrawing unchanged areas
         self.prev_height = 0
         self.prev_width = 0
         self.prev_bars = None
+        
+        # Mode changed flag
+        self.mode_changed = False
         
         # Clear once at start
         self.stdscr.clear()
@@ -81,48 +84,65 @@ class SmoothVisualizer:
         self.previous_values = smoothed
         return smoothed
     
-    def _draw_bars(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
-        """Draw bar visualization with selective updates."""
+    def _compute_frequency_bars(self, audio_data: np.ndarray, num_bars: int):
+        """Compute frequency bars with logarithmic spacing for full spectrum."""
         # Compute FFT
         if len(audio_data) < self.fft_size:
             audio_data = np.pad(audio_data, (0, self.fft_size - len(audio_data)), 'constant')
         
         fft = np.fft.rfft(audio_data[:self.fft_size])
         magnitude = np.abs(fft)
-        magnitude = magnitude[:len(magnitude)//2]  # Focus on lower frequencies
         
-        # Reduce to width
-        bars_per_bin = max(1, len(magnitude) // width)
+        # Use logarithmic frequency scaling for better distribution
+        # This shows both bass and treble properly
+        freqs = np.fft.rfftfreq(self.fft_size, 1.0 / 44100)
+        
+        # Create logarithmic bins from 20 Hz to 20 kHz
+        min_freq = 20
+        max_freq = 20000
+        
+        # Logarithmic spacing
+        log_bins = np.logspace(np.log10(min_freq), np.log10(max_freq), num_bars + 1)
+        
         bar_heights = []
-        
-        for i in range(width):
-            start_idx = i * bars_per_bin
-            end_idx = min(start_idx + bars_per_bin, len(magnitude))
-            if start_idx < len(magnitude):
-                bar_heights.append(np.mean(magnitude[start_idx:end_idx]))
+        for i in range(num_bars):
+            # Find frequencies in this bin
+            freq_mask = (freqs >= log_bins[i]) & (freqs < log_bins[i + 1])
+            if np.any(freq_mask):
+                # Use max instead of mean for more responsive visualization
+                bar_heights.append(np.max(magnitude[freq_mask]))
             else:
                 bar_heights.append(0)
         
-        # Normalize and smooth
         bar_heights = np.array(bar_heights)
+        
+        # Normalize with some boost for visibility
         if np.max(bar_heights) > 0:
             bar_heights = bar_heights / np.max(bar_heights)
+            # Apply a slight curve for better visibility of lower levels
+            bar_heights = np.power(bar_heights, 0.7)
         
+        return bar_heights
+    
+    def _draw_bars(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
+        """Draw bar visualization with selective updates."""
+        bar_heights = self._compute_frequency_bars(audio_data, width)
         bar_heights = self._apply_smoothing(bar_heights)
         
         # Convert to integer heights
         current_bars = (bar_heights * height).astype(int)
         
-        # Only update changed columns
-        if self.prev_bars is None or len(self.prev_bars) != len(current_bars):
+        # Force full redraw if mode changed
+        if self.mode_changed or self.prev_bars is None or len(self.prev_bars) != len(current_bars):
             self.prev_bars = np.zeros_like(current_bars)
+            self.mode_changed = False
         
         for col in range(min(width, len(current_bars))):
             cur_height = current_bars[col]
             prev_height = self.prev_bars[col]
             
-            # Only update if changed
-            if cur_height != prev_height:
+            # Update if changed or significant
+            if abs(cur_height - prev_height) > 0:
                 # Clear the old bar
                 for row in range(height):
                     try:
@@ -191,6 +211,88 @@ class SmoothVisualizer:
             except curses.error:
                 pass
     
+    def _draw_mirror_circular(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
+        """Draw mirror circular visualization like YouTube videos."""
+        # Get frequency bars for half the width
+        num_bars = width // 2
+        bar_heights = self._compute_frequency_bars(audio_data, num_bars)
+        bar_heights = self._apply_smoothing(bar_heights)
+        
+        # Mirror visualization - bars grow from center
+        center = height // 2
+        
+        # Clear previous if mode changed
+        if self.mode_changed:
+            for row in range(height):
+                for col in range(width):
+                    try:
+                        self.stdscr.addch(row + y_offset, col, ord(' '))
+                    except curses.error:
+                        pass
+            self.mode_changed = False
+        
+        # Draw left half (mirrored from center)
+        for i in range(num_bars):
+            bar_height = int(bar_heights[i] * center)
+            color = self._get_color(bar_heights[i])
+            
+            col = num_bars - i - 1  # Mirror position
+            
+            # Draw from center outward (both up and down)
+            for offset in range(bar_height):
+                # Upper half
+                try:
+                    self.stdscr.addch(center - offset + y_offset, col, ord('█'), color)
+                except curses.error:
+                    pass
+                # Lower half (mirror)
+                try:
+                    self.stdscr.addch(center + offset + y_offset, col, ord('█'), color)
+                except curses.error:
+                    pass
+            
+            # Clear above/below if bar shrunk
+            for offset in range(bar_height, center):
+                try:
+                    self.stdscr.addch(center - offset + y_offset, col, ord(' '))
+                except curses.error:
+                    pass
+                try:
+                    self.stdscr.addch(center + offset + y_offset, col, ord(' '))
+                except curses.error:
+                    pass
+        
+        # Draw right half (mirrored)
+        for i in range(num_bars):
+            bar_height = int(bar_heights[i] * center)
+            color = self._get_color(bar_heights[i])
+            
+            col = num_bars + i
+            if col >= width:
+                break
+            
+            # Draw from center outward (both up and down)
+            for offset in range(bar_height):
+                try:
+                    self.stdscr.addch(center - offset + y_offset, col, ord('█'), color)
+                except curses.error:
+                    pass
+                try:
+                    self.stdscr.addch(center + offset + y_offset, col, ord('█'), color)
+                except curses.error:
+                    pass
+            
+            # Clear above/below if bar shrunk
+            for offset in range(bar_height, center):
+                try:
+                    self.stdscr.addch(center - offset + y_offset, col, ord(' '))
+                except curses.error:
+                    pass
+                try:
+                    self.stdscr.addch(center + offset + y_offset, col, ord(' '))
+                except curses.error:
+                    pass
+    
     def visualize(self, audio_data: Optional[np.ndarray], device_name: str = "Unknown"):
         """Main visualization with selective updates."""
         try:
@@ -215,9 +317,11 @@ class SmoothVisualizer:
                 if mode == "bars":
                     self._draw_bars(audio_data, viz_height, viz_width, y_offset)
                 elif mode == "spectrum":
-                    self._draw_bars(audio_data, viz_height, viz_width, y_offset)  # Use same for now
-                else:
-                    self._draw_bars(audio_data, viz_height, viz_width, y_offset)  # Use same for now
+                    self._draw_bars(audio_data, viz_height, viz_width, y_offset)
+                elif mode == "mirror_circular":
+                    self._draw_mirror_circular(audio_data, viz_height, viz_width, y_offset)
+                elif mode == "waveform":
+                    self._draw_bars(audio_data, viz_height, viz_width, y_offset)
             
             # Store current dimensions
             self.prev_height = height
@@ -234,17 +338,32 @@ class SmoothVisualizer:
         try:
             key = self.stdscr.getch()
             
+            # Check for no input
+            if key == -1 or key == curses.ERR:
+                return True
+            
             if key == ord('q') or key == ord('Q') or key == 27:
                 return False
             elif key == ord(' '):
+                # Change mode
+                old_mode = self.current_mode
                 self.current_mode = (self.current_mode + 1) % len(self.modes)
                 self.previous_values = None
                 self.prev_bars = None
+                self.mode_changed = True
+                
                 # Clear visualization area
                 height, width = self.stdscr.getmaxyx()
                 for row in range(3, height - 1):
-                    self.stdscr.move(row, 0)
-                    self.stdscr.clrtoeol()
+                    try:
+                        self.stdscr.move(row, 0)
+                        self.stdscr.clrtoeol()
+                    except curses.error:
+                        pass
+                
+                # Force header redraw to show new mode
+                self.prev_width = 0
+                self.prev_height = 0
             
         except curses.error:
             pass

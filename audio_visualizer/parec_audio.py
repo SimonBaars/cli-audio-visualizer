@@ -11,10 +11,10 @@ import sys
 class ParecAudioCapture:
     """Audio capture using parec to directly capture from PulseAudio/PipeWire monitor."""
     
-    def __init__(self, sample_rate: int = 44100, chunk_size: int = 2048):
+    def __init__(self, sample_rate: int = 44100, chunk_size: int = 1024):
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
-        self.audio_queue = queue.Queue(maxsize=10)
+        self.audio_queue = queue.Queue(maxsize=5)  # Smaller queue for lower latency
         self.process = None
         self.running = False
         self.capture_thread = None
