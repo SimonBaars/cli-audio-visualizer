@@ -65,33 +65,82 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
                 # Increase trail brightness
                 trail[y, x] = max(trail[y, x], 0.4 + 0.6 * (step / max(1, r - 1)))
 
-    # Render trail buffer
+    # ---------------- Sparkly star particles ----------------
+    # Particles emitted from center with outward velocity and short lifetimes.
+    particles = state.get('particles')
+    if particles is None:
+        particles = []
+
+    energy = float(np.mean(bands)) if len(bands) else 0.0
+    # Spawn rate scales with energy (capped for performance)
+    spawn_count = min(60, int(2 + energy * 25))
+    rng = np.random.random
+    for _ in range(spawn_count):
+        ang = rng() * 2 * np.pi
+        base_speed = 0.4 + rng() * 1.2 * (0.5 + energy * 1.2)
+        vx = np.cos(ang) * base_speed
+        vy = np.sin(ang) * base_speed * 0.6  # keep vertical squish
+        max_life = 12 + int(rng() * 18)
+        particles.append([cx + 0.0, cy + 0.0, vx, vy, 0, max_life])  # x,y,vx,vy,life,max_life
+
+    # Update particles
+    new_particles = []
+    for p in particles:
+        p[0] += p[2]
+        p[1] += p[3]
+        p[4] += 1  # life
+        if p[4] < p[5] and 0 <= p[0] < width and 0 <= p[1] < height:
+            new_particles.append(p)
+    particles = new_particles
+
+    # Render trail buffer first (background glow)
     simple = state.get('simple_ascii')
     for y in range(height):
+        row_trail = trail[y]
         for x in range(width):
-            b = trail[y, x]
+            b = row_trail[x]
             if b <= 0.02:
                 continue
-            # Color intensity linked to brightness
             color = get_color_func(b, x / max(1, width - 1))
-            # Choose glyph by brightness tiers
             if simple:
                 if b > 0.75: ch = '*'
                 elif b > 0.5: ch = '+'
                 elif b > 0.3: ch = '.'
                 else: ch = '·'
             else:
-                if b > 0.75:
-                    ch = '✶'
-                elif b > 0.5:
-                    ch = '✳'
-                elif b > 0.3:
-                    ch = '•'
-                else:
-                    ch = '·'
+                if b > 0.75: ch = '✶'
+                elif b > 0.5: ch = '✳'
+                elif b > 0.3: ch = '•'
+                else: ch = '·'
             try:
                 stdscr.addch(y + y_offset, x, ord(ch), color)
             except curses.error:
                 pass
 
+    # Render particles on top (sharper stars)
+    for p in particles:
+        life_ratio = p[4] / p[5]
+        b = max(0.0, 1.0 - life_ratio)
+        # Twinkle modulation
+        twinkle = 0.6 + 0.4 * np.sin(p[4] * 0.6 + p[0] * 0.2)
+        intensity = min(1.0, b * twinkle)
+        color = get_color_func(intensity, p[0] / max(1, width - 1))
+        x_i = int(p[0])
+        y_i = int(p[1])
+        if 0 <= x_i < width and 0 <= y_i < height:
+            if simple:
+                if intensity > 0.7: ch = '*'
+                elif intensity > 0.4: ch = '+'
+                else: ch = '.'
+            else:
+                if intensity > 0.75: ch = '✦'
+                elif intensity > 0.5: ch = '✧'
+                elif intensity > 0.3: ch = '•'
+                else: ch = '·'
+            try:
+                stdscr.addch(y_i + y_offset, x_i, ord(ch), color)
+            except curses.error:
+                pass
+
     state['trail'] = trail
+    state['particles'] = particles
