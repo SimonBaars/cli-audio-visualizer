@@ -9,8 +9,8 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
                   get_color_func, apply_smoothing_func, state: dict):
     """Draw spectrum analyzer with thin bars and gaps."""
     # Use fewer bars (half width) with gaps between
-    num_bars = width // 2
-    bar_heights = compute_frequency_bars(audio_data, num_bars)
+    num_bars = max(1, width // 2)
+    bar_heights = compute_frequency_bars(audio_data, num_bars, sample_rate=44100)
     bar_heights = apply_smoothing_func(bar_heights, False)
     
     # Track peak values for spectrum analyzer effect
@@ -31,11 +31,15 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
             peak_decay[i] += 0.008
             peak_values[i] = max(0, peak_values[i] - peak_decay[i])
     
-    # Clear entire area
+    # Clear entire area + draw faint horizontal grid every 4 rows for readability
     for row in range(height):
+        is_grid = (row % 4 == 0 and row not in (0, height-1))
         for col in range(width):
             try:
-                stdscr.addch(row + y_offset, col, ord(' '))
+                if is_grid:
+                    stdscr.addch(row + y_offset, col, ord('·'), curses.color_pair(7) | curses.A_DIM)
+                else:
+                    stdscr.addch(row + y_offset, col, ord(' '))
             except curses.error:
                 pass
     
@@ -51,20 +55,24 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
         peak_height = int(peak_values[bar_idx] * height)
         position = bar_idx / max(1, num_bars - 1)
         
-        # Draw thin bar (single character wide)
+        # Draw gradient bar using two glyph regions: solid lower, light upper
         color = get_color_func(height_ratio, position)
         for row in range(height):
             if height - row <= bar_height:
+                # Relative level inside this bar (0 bottom .. 1 top)
+                rel = (height - row) / max(1, bar_height)
+                glyph = '█' if rel < 0.55 else ('▓' if rel < 0.8 else '░')
                 try:
-                    stdscr.addch(row + y_offset, col, ord('│'), color)
+                    stdscr.addch(row + y_offset, col, ord(glyph), color)
                 except curses.error:
                     pass
         
         # Draw peak indicator
         peak_row = height - peak_height
-        if 0 <= peak_row < height and peak_height > bar_height:
+        if 0 <= peak_row < height:
             try:
                 peak_color = get_color_func(peak_values[bar_idx], position)
-                stdscr.addch(peak_row + y_offset, col, ord('─'), peak_color)
+                marker_char = '▲' if peak_height > bar_height else '·'
+                stdscr.addch(peak_row + y_offset, col, ord(marker_char), peak_color)
             except curses.error:
                 pass
