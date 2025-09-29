@@ -59,7 +59,7 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
         # Get color
         position = i / max(1, num_draw_points - 1)
         intensity = abs(wave_offset / base_radius) if base_radius > 0 else 0
-    color = get_color_func(intensity * 0.7 + energy_sm * 0.3, position)
+        color = get_color_func(intensity * 0.7 + energy_sm * 0.3, position)
         
         # Draw current point
         simple = state.get('simple_ascii')
