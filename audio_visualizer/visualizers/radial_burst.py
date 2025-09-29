@@ -66,6 +66,7 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
                 trail[y, x] = max(trail[y, x], 0.4 + 0.6 * (step / max(1, r - 1)))
 
     # Render trail buffer
+    simple = state.get('simple_ascii')
     for y in range(height):
         for x in range(width):
             b = trail[y, x]
@@ -74,14 +75,20 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
             # Color intensity linked to brightness
             color = get_color_func(b, x / max(1, width - 1))
             # Choose glyph by brightness tiers
-            if b > 0.75:
-                ch = '✶'
-            elif b > 0.5:
-                ch = '✳'
-            elif b > 0.3:
-                ch = '•'
+            if simple:
+                if b > 0.75: ch = '*'
+                elif b > 0.5: ch = '+'
+                elif b > 0.3: ch = '.'
+                else: ch = '·'
             else:
-                ch = '·'
+                if b > 0.75:
+                    ch = '✶'
+                elif b > 0.5:
+                    ch = '✳'
+                elif b > 0.3:
+                    ch = '•'
+                else:
+                    ch = '·'
             try:
                 stdscr.addch(y + y_offset, x, ord(ch), color)
             except curses.error:

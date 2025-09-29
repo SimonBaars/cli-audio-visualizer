@@ -65,7 +65,11 @@ def draw_bars_simple(stdscr, audio_data: np.ndarray, height: int, width: int, y_
             # Mix base level and relative position inside bar for color variance
             color_level = min(1.0, level_base * 0.5 + rel * 0.5)
             color = get_color_func(color_level, pos)
-            glyph = ASCII_GRADIENT[-1]
+            # If global ascii flag off, allow fallback to block (user toggled away)
+            if not state.get('simple_ascii'):
+                glyph = '█'
+            else:
+                glyph = ASCII_GRADIENT[-1]
             row = height - 1 - step
             try:
                 stdscr.addch(row + y_offset, col, ord(glyph), color)

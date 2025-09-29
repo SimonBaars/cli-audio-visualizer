@@ -164,10 +164,11 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
             if screen_y < y_offset or screen_y >= y_offset + height:
                 continue
             # Choose glyph based on whether inside active, trail, or empty
+            simple = state.get('simple_ascii')
             if filled:
-                glyph = '█'
+                glyph = '#' if simple else '█'
             elif trail_val > 0.05:
-                glyph = '▒'
+                glyph = '+' if simple else '▒'
             else:
                 glyph = ' '
             # Draw horizontal span for thickness
@@ -184,8 +185,9 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
             if y_offset <= py < y_offset + height - 1:
                 try:
                     peak_color = get_color_func(1.0, position) | curses.A_BOLD
+                    peak_ch = '-' if state.get('simple_ascii') else '─'
                     for dx in range(col_w):
-                        stdscr.addch(py, col_x + dx, ord('─'), peak_color)
+                        stdscr.addch(py, col_x + dx, ord(peak_ch), peak_color)
                 except curses.error:
                     pass
 

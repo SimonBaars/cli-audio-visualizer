@@ -49,9 +49,11 @@ def draw_mirror_circular(stdscr, audio_data: np.ndarray, height: int, width: int
                     pass
             
             # Draw from center outward
+            simple = state.get('simple_ascii')
+            ch = '|' if simple else '█'
             for offset in range(bar_height):
                 try:
-                    stdscr.addch(center - offset + y_offset, col, ord('█'), color)
-                    stdscr.addch(center + offset + y_offset, col, ord('█'), color)
+                    stdscr.addch(center - offset + y_offset, col, ord(ch), color)
+                    stdscr.addch(center + offset + y_offset, col, ord(ch), color)
                 except curses.error:
                     pass

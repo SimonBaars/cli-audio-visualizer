@@ -111,8 +111,15 @@ class SmoothVisualizer:
                 
                 mode_text = f"Mode: {self.modes[self.current_mode].upper()}"
                 color_text = f"Color: {self.color_schemes[self.current_color_scheme].upper()}"
-                self.stdscr.addstr(1, 2, mode_text, curses.color_pair(2))
-                self.stdscr.addstr(1, 30, color_text, curses.color_pair(3))
+                flags = []
+                if self.viz_state.get('flatten'): flags.append('FLAT')
+                eq_mode = self.viz_state.get('adaptive_eq_mode', 0)
+                if eq_mode == 1: flags.append('EQ~')
+                elif eq_mode == 2: flags.append('EQ+')
+                if self.viz_state.get('simple_ascii'): flags.append('ASCII')
+                flag_text = (' [' + ' '.join(flags) + ']') if flags else ''
+                self.stdscr.addstr(1, 2, mode_text + flag_text, curses.color_pair(2))
+                self.stdscr.addstr(1, 40, color_text, curses.color_pair(3))
             except curses.error:
                 pass
         
@@ -130,7 +137,7 @@ class SmoothVisualizer:
                 self.stdscr.move(height - 1, 0)
                 self.stdscr.clrtoeol()
                 
-                controls = "[SPACE] Mode  [ENTER] Color  [S] Snapshot  [F] Flatten Tilt  [W] Adaptive EQ  [Q] Quit"
+                controls = "[SPACE] Mode  [ENTER] Color  [B] ASCII  [F] Flatten  [W] EQ  [S] Snapshot  [P] Save  [Q] Quit"
                 self.stdscr.addstr(height - 1, (width - len(controls)) // 2, controls,
                                  curses.color_pair(4))
             except curses.error:
@@ -227,10 +234,23 @@ class SmoothVisualizer:
                 self.prev_width = 0
                 self.prev_height = 0
             elif key == ord('w') or key == ord('W'):
-                self.viz_state['adaptive_eq'] = not self.viz_state.get('adaptive_eq', False)
-                # Reset running mean so it recalibrates cleanly
+                # Cycle adaptive EQ mode: 0 (off) -> 1 (medium) -> 2 (strong)
+                mode = self.viz_state.get('adaptive_eq_mode', 0)
+                mode = (mode + 1) % 3
+                self.viz_state['adaptive_eq_mode'] = mode
+                if mode == 0:
+                    self.viz_state['adaptive_eq'] = False
+                    self.viz_state['adaptive_eq_strength'] = 0.0
+                elif mode == 1:
+                    self.viz_state['adaptive_eq'] = True
+                    self.viz_state['adaptive_eq_strength'] = 0.4
+                else:
+                    self.viz_state['adaptive_eq'] = True
+                    self.viz_state['adaptive_eq_strength'] = 0.65
                 if 'adaptive_eq_mean' in self.viz_state:
                     del self.viz_state['adaptive_eq_mean']
+                self.prev_width = 0
+                self.prev_height = 0
             elif key == ord('b') or key == ord('B'):
                 # Toggle global simple ascii flag for bar-style modes
                 self.viz_state['simple_ascii'] = not self.viz_state.get('simple_ascii', False)

@@ -56,9 +56,11 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
         color = get_color_func(intensity, position)
         
         # Draw current point
+        simple = state.get('simple_ascii')
+        ch_point = '*' if simple else '█'
         if 0 <= x < width and 0 <= y < height:
             try:
-                stdscr.addch(y + y_offset, x, ord('█'), color)
+                stdscr.addch(y + y_offset, x, ord(ch_point), color)
             except curses.error:
                 pass
         
@@ -77,7 +79,7 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
                     
                     if 0 <= interp_x < width and 0 <= interp_y < height:
                         try:
-                            stdscr.addch(interp_y + y_offset, interp_x, ord('█'), color)
+                            stdscr.addch(interp_y + y_offset, interp_x, ord(ch_point), color)
                         except curses.error:
                             pass
         

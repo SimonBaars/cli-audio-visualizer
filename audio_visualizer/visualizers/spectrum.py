@@ -70,10 +70,14 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
         position = bar_idx / max(1, num_bars - 1)
         
         # Draw gradient bar using two glyph regions: solid lower, light upper
+        simple = state.get('simple_ascii')
         for row in range(height):
             if height - row <= bar_height:
                 rel = (height - row) / max(1, bar_height)
-                glyph = '█' if rel < 0.55 else ('▓' if rel < 0.8 else '░')
+                if simple:
+                    glyph = '|' if rel < 0.7 else ':'
+                else:
+                    glyph = '█' if rel < 0.55 else ('▓' if rel < 0.8 else '░')
                 row_level = min(1.0, (height_ratio * 0.6) + rel * 0.4)
                 color = get_color_func(row_level, position)
                 try:

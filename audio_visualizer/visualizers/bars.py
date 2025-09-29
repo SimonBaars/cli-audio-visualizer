@@ -46,13 +46,13 @@ def draw_bars(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset:
         height_ratio = bar_heights[col]
         position = col / max(1, width - 1)
         
+        simple = state.get('simple_ascii')
         for row in range(height):
             if height - row <= cur_height:
-                # Relative level within bar (bottom 0 -> top 1)
                 rel_level = (height - row) / max(1, cur_height)
-                # Combine amplitude & vertical position for richer color dynamics
                 color = get_color_func(min(1.0, height_ratio * 0.5 + rel_level * 0.5), position)
+                ch = '|' if simple else '█'
                 try:
-                    stdscr.addch(row + y_offset, col, ord('█'), color)
+                    stdscr.addch(row + y_offset, col, ord(ch), color)
                 except curses.error:
                     pass
