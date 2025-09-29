@@ -217,37 +217,62 @@ class SmoothVisualizer:
         self.prev_bars = current_bars.copy()
     
     def _draw_spectrum(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
-        """Draw spectrum with block gradient."""
+        """Draw spectrum analyzer with peaks and decay."""
         bar_heights = self._compute_frequency_bars(audio_data, width)
         bar_heights = self._apply_smoothing(bar_heights)
         
+        # Track peak values for spectrum analyzer effect
+        if not hasattr(self, 'peak_values'):
+            self.peak_values = np.zeros(width)
+            self.peak_decay = np.zeros(width)
+        
         if self.mode_changed:
             self._clear_area(y_offset, height, width)
+            self.peak_values = np.zeros(width)
+            self.peak_decay = np.zeros(width)
             self.mode_changed = False
         
-        block_chars = ' ▁▂▃▄▅▆▇█'
+        # Update peaks
+        for i in range(len(bar_heights)):
+            if bar_heights[i] > self.peak_values[i]:
+                self.peak_values[i] = bar_heights[i]
+                self.peak_decay[i] = 0
+            else:
+                # Peak decays slowly
+                self.peak_decay[i] += 0.01
+                self.peak_values[i] = max(0, self.peak_values[i] - self.peak_decay[i])
         
+        # Draw bars with peak indicators
         for col in range(width):
             height_ratio = bar_heights[col]
             bar_height = int(height_ratio * height)
+            peak_height = int(self.peak_values[col] * height)
             position = col / max(1, width - 1)
             
+            # Clear column
+            for row in range(height):
+                try:
+                    self.stdscr.addch(row + y_offset, col, ord(' '))
+                except curses.error:
+                    pass
+            
+            # Draw bar
+            color = self._get_color(height_ratio, position)
             for row in range(height):
                 if height - row <= bar_height:
-                    # Use gradient blocks
-                    block_progress = (height - row) / max(1, bar_height)
-                    char_idx = int(block_progress * (len(block_chars) - 1))
-                    char = block_chars[min(char_idx, len(block_chars) - 1)]
-                    color = self._get_color(height_ratio, position)
                     try:
-                        self.stdscr.addch(row + y_offset, col, ord(char), color)
+                        self.stdscr.addch(row + y_offset, col, ord('▆'), color)
                     except curses.error:
                         pass
-                else:
-                    try:
-                        self.stdscr.addch(row + y_offset, col, ord(' '))
-                    except curses.error:
-                        pass
+            
+            # Draw peak indicator
+            peak_row = height - peak_height
+            if 0 <= peak_row < height and peak_height > bar_height:
+                try:
+                    peak_color = self._get_color(self.peak_values[col], position)
+                    self.stdscr.addch(peak_row + y_offset, col, ord('▬'), peak_color)
+                except curses.error:
+                    pass
     
     def _draw_waveform(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
         """Draw actual time-domain waveform."""
