@@ -86,15 +86,15 @@ def draw_background(stdscr, width: int, height: int, state: dict, bg_index: int,
         state['bg_h'] = height
     elif name == 'palm':
         art = [
-            "    __ _",
-            "   /  / ",
-            "  /--/  ",
-            " /  /   ",
-            "(  (    ",
-            " \\  \\\\   ",
-            "  \\  \\\\  ",
-            "   \\  \\\\ ",
-            "    | | ",
+            "    __ _", 
+            "   /  / ", 
+            "  /--/  ", 
+            " /  /   ", 
+            "(  (    ", 
+            " \  \\   ", 
+            "  \  \\  ", 
+            "   \  \\ ", 
+            "    | | ", 
             "    | | ",
         ]
         # Place at left or center depending on width
