@@ -85,9 +85,9 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
         # Draw horizontal bar
         bar_y = block_y + block_height // 2
         bar_width = width - 4
-    # Log-like perceptual scaling for more movement (compress extremes)
-    level_disp = np.power(level, 0.75)
-    bar_length = int(level_disp * bar_width)
+        # Log-like perceptual scaling for more movement (compress extremes)
+        level_disp = np.power(level, 0.75)
+        bar_length = int(level_disp * bar_width)
         
         # Determine color based on level
         position = idx / max(1, len(levels) - 1)
@@ -121,7 +121,7 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
                 pass
         
         # Draw percentage
-    percentage = int(level * 100)
+        percentage = int(level * 100)
         pct_str = f"{percentage}%"
         try:
             stdscr.addstr(bar_y, width - 6, pct_str, curses.color_pair(7))

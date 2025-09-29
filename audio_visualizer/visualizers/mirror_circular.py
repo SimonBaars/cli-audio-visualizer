@@ -2,7 +2,7 @@
 
 import numpy as np
 import curses
-from .base import compute_frequency_bars
+from audio_visualizer.dsp.bars import compute_frequency_bars
 
 
 def draw_mirror_circular(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset: int,
