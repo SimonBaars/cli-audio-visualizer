@@ -24,6 +24,12 @@ class SmoothVisualizer:
         # Persistent config
         self.config_path = 'config.json'
         self._load_config()
+        # Ensure default medium EQ if not set by config
+        if 'adaptive_eq_mode' not in self.viz_state:
+            # Default: medium mode (1)
+            self.viz_state['adaptive_eq_mode'] = 1
+            self.viz_state['adaptive_eq'] = True
+            self.viz_state['adaptive_eq_strength'] = 0.4
         # Clamp restored indices
         self.current_mode = min(self.current_mode, len(self.modes) - 1)
         self.current_color_scheme = min(self.current_color_scheme, len(self.color_schemes) - 1)
@@ -292,6 +298,10 @@ class SmoothVisualizer:
     def _load_config(self):
         import json, os
         if not os.path.exists(self.config_path):
+            # Set default medium EQ when no config exists
+            self.viz_state['adaptive_eq_mode'] = 1
+            self.viz_state['adaptive_eq'] = True
+            self.viz_state['adaptive_eq_strength'] = 0.4
             return
         try:
             with open(self.config_path, 'r') as f:
@@ -312,6 +322,36 @@ class SmoothVisualizer:
             self.viz_state['flatten'] = cfg.get('flatten', False)
             self.viz_state['adaptive_eq'] = cfg.get('adaptive_eq', False)
             self.viz_state['simple_ascii'] = cfg.get('simple_ascii', False)
+            # Infer or load adaptive_eq_mode
+            if 'adaptive_eq_mode' in cfg:
+                self.viz_state['adaptive_eq_mode'] = cfg.get('adaptive_eq_mode', 1)
+            else:
+                # Derive from strength if present
+                strength = cfg.get('adaptive_eq_strength', 0.0)
+                if self.viz_state.get('adaptive_eq'):
+                    if strength >= 0.6:
+                        self.viz_state['adaptive_eq_mode'] = 2
+                    elif strength >= 0.25:
+                        self.viz_state['adaptive_eq_mode'] = 1
+                    else:
+                        self.viz_state['adaptive_eq_mode'] = 1  # default medium
+                else:
+                    # If off but user previously disabled, keep off
+                    if cfg.get('adaptive_eq') is False:
+                        self.viz_state['adaptive_eq_mode'] = 0
+                    else:
+                        self.viz_state['adaptive_eq_mode'] = 1
+            # Apply normalized strength based on inferred mode if we derived it
+            mode = self.viz_state.get('adaptive_eq_mode', 1)
+            if mode == 0:
+                self.viz_state['adaptive_eq'] = False
+                self.viz_state['adaptive_eq_strength'] = 0.0
+            elif mode == 1:
+                self.viz_state['adaptive_eq'] = True
+                self.viz_state['adaptive_eq_strength'] = 0.4
+            else:
+                self.viz_state['adaptive_eq'] = True
+                self.viz_state['adaptive_eq_strength'] = 0.65
         except Exception:
             pass
 
@@ -321,8 +361,8 @@ class SmoothVisualizer:
             'current_mode': self.current_mode,  # still write index for backward compat
             'mode_name': self.modes[self.current_mode],
             'current_color_scheme': self.current_color_scheme,
-            'flatten': self.viz_state.get('flatten', False),
             'adaptive_eq': self.viz_state.get('adaptive_eq', False),
+            'adaptive_eq_mode': self.viz_state.get('adaptive_eq_mode', 1),
             'simple_ascii': self.viz_state.get('simple_ascii', False)
         }
         try:

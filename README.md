@@ -5,7 +5,7 @@ Real‑time, flashy, terminal audio visualization powered by PulseAudio / PipeWi
 ## ✨ Highlights
 
 - **7 Modes**: `bars`, `spectrum`, `waveform`, `mirror_circular`, `circular_wave` (now with sparks, rays & halo), `levels` (vertical reactive meters), `radial_burst` (starfield).
-- **Adaptive DSP**: Log‑spaced bands (20 Hz–20 kHz), tilt compensation, noise floor suppression, gamma + optional adaptive EQ (3 strengths).
+- **Adaptive DSP**: Log‑spaced bands (20 Hz–20 kHz), tilt compensation, noise floor suppression, gamma + adaptive EQ (3 strengths, medium enabled by default).
 - **Smooth + Responsive**: Temporal + spatial smoothing that keeps punchy attacks while taming HF jitter.
 - **Particles & Fun**: Orbiting sparks, pulsing inner ring, radial rays, halo dots, starfield burst particles.
 - **ASCII Toggle**: Instantly switch to minimal glyphs for compatibility or taste.
@@ -22,7 +22,7 @@ Real‑time, flashy, terminal audio visualization powered by PulseAudio / PipeWi
 |-----|--------|
 | SPACE | Next visualization mode |
 | ENTER | Next color scheme |
-| W | Cycle Adaptive EQ: off → medium (EQ~) → strong (EQ+) |
+| W | Cycle Adaptive EQ: off → medium (EQ~ default) → strong (EQ+) |
 | (removed) | Former F (tilt flatten) — now always uses balanced spectrum compensation |
 | B | Toggle ASCII/simple glyphs |
 | S | Snapshot (bars / levels JSON) + save config |
