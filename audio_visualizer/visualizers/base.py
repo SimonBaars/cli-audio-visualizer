@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def compute_frequency_bars(audio_data: np.ndarray, num_bars: int, fft_size: int = 4096, sample_rate: int = 44100):
+def compute_frequency_bars(audio_data: np.ndarray, num_bars: int, fft_size: int = 4096, sample_rate: int = 44100, flatten: bool = False):
     """Compute frequency bars with perceptually-better distribution.
 
     Improvements over previous implementation:
@@ -77,11 +77,12 @@ def compute_frequency_bars(audio_data: np.ndarray, num_bars: int, fft_size: int 
         floor = np.percentile(bar_vals, 20)
         bar_vals = np.clip(bar_vals - floor * 0.15, 0, None)
 
-        # Spectral tilt compensation (stronger & applied AFTER floor removal)
-        idx = np.linspace(0, 1, num_bars)
-        # Up to +8 dB (~2.5x) at extreme right to keep highs visible in typical music
-        tilt_gain = 1.0 + 1.5 * (idx ** 1.1)
-        bar_vals *= tilt_gain
+        # Spectral tilt compensation (moderate) unless flatten requested
+        if not flatten:
+            idx = np.linspace(0, 1, num_bars)
+            # Up to +5 dB (~1.78x) at extreme right
+            tilt_gain = 1.0 + 0.78 * (idx ** 1.15)
+            bar_vals *= tilt_gain
 
         # Minimal baseline proportional to global mean to avoid empty tail
         baseline = np.mean(bar_vals) * 0.01
