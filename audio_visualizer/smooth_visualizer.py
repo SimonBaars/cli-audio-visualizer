@@ -269,22 +269,34 @@ class SmoothVisualizer:
         
         middle = height // 2
         
-        # Clear and draw
+        # Clear and draw - draw lines from middle to wave point
         for col in range(min(width, len(waveform))):
             wave_value = waveform[col]
-            wave_height = int(wave_value * middle)
+            wave_height = int(wave_value * middle * 0.9)  # Scale to 90% for margin
             target_row = middle - wave_height
             
-            # Clear column
+            color = self._get_color(abs(wave_value))
+            
+            # Draw line from middle to target
+            start_row = min(middle, target_row)
+            end_row = max(middle, target_row)
+            
+            # Clear column first
             for row in range(height):
                 try:
+                    self.stdscr.addch(row + y_offset, col, ord(' '))
+                except curses.error:
+                    pass
+            
+            # Draw waveform line
+            for row in range(start_row, end_row + 1):
+                try:
                     if row == middle:
+                        # Center line
                         self.stdscr.addch(row + y_offset, col, ord('─'), curses.color_pair(7) | curses.A_DIM)
-                    elif row == target_row:
-                        color = self._get_color(abs(wave_value))
-                        self.stdscr.addch(row + y_offset, col, ord('█'), color)
                     else:
-                        self.stdscr.addch(row + y_offset, col, ord(' '))
+                        # Waveform
+                        self.stdscr.addch(row + y_offset, col, ord('│'), color)
                 except curses.error:
                     pass
     
