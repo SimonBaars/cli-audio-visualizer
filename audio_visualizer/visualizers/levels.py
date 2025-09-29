@@ -13,8 +13,10 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
     if len(audio_data) < fft_size:
         audio_data = np.pad(audio_data, (0, fft_size - len(audio_data)), 'constant')
     
-    fft = np.fft.rfft(audio_data[:fft_size])
-    magnitude = np.abs(fft)
+    # Apply window to reduce leakage that exaggerates low bins
+    window = np.hanning(fft_size)
+    fft = np.fft.rfft(audio_data[:fft_size] * window)
+    power = (np.abs(fft) ** 2)
     freqs = np.fft.rfftfreq(fft_size, 1.0 / 44100)
     
     # Define 3 main frequency ranges
@@ -28,15 +30,27 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
     for name, low, high in ranges:
         mask = (freqs >= low) & (freqs < high)
         if np.any(mask):
-            level = np.mean(magnitude[mask])
+            band = power[mask]
+            # Use RMS of power; balances wide vs narrow bands
+            level = float(np.sqrt(np.mean(band)))
         else:
-            level = 0
+            level = 0.0
         levels.append((name, level))
     
-    # Normalize
-    max_level = max(l[1] for l in levels) if levels else 1
-    if max_level > 0:
-        levels = [(name, level / max_level) for name, level in levels]
+    # Adaptive normalization: subtract median (noise floor), then scale
+    raw_vals = np.array([l[1] for l in levels], dtype=np.float32)
+    if np.any(raw_vals > 0):
+        median_floor = np.median(raw_vals)
+        raw_vals = np.clip(raw_vals - median_floor * 0.5, 0, None)
+        max_val = np.max(raw_vals)
+        if max_val > 0:
+            norm_vals = raw_vals / max_val
+        else:
+            norm_vals = raw_vals
+    else:
+        norm_vals = raw_vals
+
+    levels = [(levels[i][0], float(norm_vals[i])) for i in range(len(levels))]
     
     # Apply smoothing
     if 'prev_levels' not in state:
@@ -44,7 +58,7 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
     else:
         smoothed = []
         for i, (name, level) in enumerate(levels):
-            smoothed_val = 0.7 * state['prev_levels'][i] + 0.3 * level
+            smoothed_val = 0.55 * state['prev_levels'][i] + 0.45 * level
             smoothed.append((name, smoothed_val))
         levels = smoothed
         state['prev_levels'] = [l[1] for l in levels]
