@@ -390,32 +390,40 @@ class SmoothVisualizer:
         bar_heights = self._compute_frequency_bars(audio_data, 20)  # 20 frequency bands
         bar_heights = self._apply_smoothing(bar_heights)
         
+        # Clear area every frame for proper updates
         if self.mode_changed:
             self._clear_area(y_offset, height, width)
             self.mode_changed = False
         
         bands_per_row = 4
-        rows = (len(bar_heights) + bands_per_row - 1) // bands_per_row
+        rows = min((len(bar_heights) + bands_per_row - 1) // bands_per_row, height // 2)
         bar_width = width // bands_per_row - 2
         
         for idx, height_val in enumerate(bar_heights):
             row = idx // bands_per_row
             col_start = (idx % bands_per_row) * (bar_width + 2)
             
-            if row >= height:
+            if row >= rows:
                 break
             
             bar_length = int(height_val * bar_width)
             position = idx / max(1, len(bar_heights) - 1)
             
-            # Draw bar
+            # Clear the entire row first
+            try:
+                for x in range(bar_width):
+                    self.stdscr.addch(row * 2 + y_offset, col_start + x, ord(' '))
+            except curses.error:
+                pass
+            
+            # Draw filled part of bar
             try:
                 for x in range(bar_length):
                     progress = x / max(1, bar_width - 1)
-                    color = self._get_color(progress, position)
+                    color = self._get_color(height_val, position)  # Use height_val for color, not progress
                     self.stdscr.addch(row * 2 + y_offset, col_start + x, ord('█'), color)
                 
-                # Clear rest
+                # Draw empty part
                 for x in range(bar_length, bar_width):
                     self.stdscr.addch(row * 2 + y_offset, col_start + x, ord('░'), curses.color_pair(7) | curses.A_DIM)
             except curses.error:
