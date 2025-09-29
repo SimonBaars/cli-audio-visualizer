@@ -66,26 +66,8 @@ class SmoothAudioVisualizerApp:
 
 
 def main():
-    """Entry point for smooth visualizer."""
-    # Initialize audio BEFORE curses
-    print("="*70)
-    print("CLI AUDIO VISUALIZER - Smooth Edition")
-    print("="*70)
-    print()
-    
+    """Entry point for smooth visualizer (silent startup)."""
     audio_capture = ParecAudioCapture(sample_rate=44100, chunk_size=1024)
-    
-    if not audio_capture.using_monitor:
-        print("\n⚠️  WARNING: Not using monitor source!")
-        print("   The visualizer may capture microphone instead of system audio.")
-        print()
-    
-    # Brief, non-blocking capture warmup attempt (read once with timeout loop)
-    print("Initializing audio (warming up capture)...")
-    start = time.time()
-    # Allow up to 0.5s passive warmup; user not forced to wait a full delay
-    while time.time() - start < 0.5:
-        time.sleep(0.05)
     
     def _run(stdscr):
         app = SmoothAudioVisualizerApp(stdscr)
@@ -97,11 +79,8 @@ def main():
     except KeyboardInterrupt:
         audio_capture.stop()
         return 0
-    except Exception as e:
+    except Exception:
         audio_capture.stop()
-        print(f"Fatal error: {e}")
-        import traceback
-        traceback.print_exc()
         return 1
 
 

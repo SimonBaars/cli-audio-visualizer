@@ -20,10 +20,12 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
     freqs = np.fft.rfftfreq(fft_size, 1.0 / 44100)
     
     # Define 3 main frequency ranges
+    # Slightly adjusted bands to give highs more energy and split mids
     ranges = [
-        ("BASS", 20, 250),      # Sub-bass and bass
-        ("MID", 250, 2000),     # Mids and presence
-        ("TREBLE", 2000, 20000) # Highs
+        ("BASS", 20, 220),
+        ("LOWMID", 220, 800),
+        ("HIGHMID", 800, 4000),
+        ("TREBLE", 4000, 16000)
     ]
     
     levels = []
@@ -31,11 +33,10 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
         mask = (freqs >= low) & (freqs < high)
         if np.any(mask):
             band = power[mask]
-            # Use RMS of power; balances wide vs narrow bands
-            level = float(np.sqrt(np.mean(band)))
+            rms = float(np.sqrt(np.mean(band)))
         else:
-            level = 0.0
-        levels.append((name, level))
+            rms = 0.0
+        levels.append((name, rms))
     
     # Adaptive normalization: subtract median (noise floor), then scale
     raw_vals = np.array([l[1] for l in levels], dtype=np.float32)
@@ -50,18 +51,31 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
     else:
         norm_vals = raw_vals
 
+    # Dynamic range compression (soft knee) to keep movement visible
+    if np.any(norm_vals > 0):
+        norm_vals = np.power(norm_vals, 0.85)
+
     levels = [(levels[i][0], float(norm_vals[i])) for i in range(len(levels))]
     
     # Apply smoothing
-    if 'prev_levels' not in state:
+    if 'prev_levels' not in state or len(state['prev_levels']) != len(levels):
         state['prev_levels'] = [l[1] for l in levels]
+        state['peaks'] = [l[1] for l in levels]
     else:
-        smoothed = []
+        new_levels = []
+        peaks = state.get('peaks', [0]*len(levels))
         for i, (name, level) in enumerate(levels):
-            smoothed_val = 0.55 * state['prev_levels'][i] + 0.45 * level
-            smoothed.append((name, smoothed_val))
-        levels = smoothed
+            prev = state['prev_levels'][i]
+            smoothed_val = 0.6 * prev + 0.4 * level
+            new_levels.append((name, smoothed_val))
+            # Peak decay
+            if level > peaks[i]:
+                peaks[i] = level
+            else:
+                peaks[i] = max(0.0, peaks[i] - 0.01)
+        levels = new_levels
         state['prev_levels'] = [l[1] for l in levels]
+        state['peaks'] = peaks
     
     # Clear entire area
     clear_area(stdscr, y_offset, height, width)
@@ -70,7 +84,7 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
     state['last_levels'] = [l for l in levels]
 
     # Calculate layout - 3 large blocks
-    block_height = height // 3
+    block_height = max(3, height // len(levels))
     
     for idx, (name, level) in enumerate(levels):
         block_y = idx * block_height + y_offset
@@ -83,10 +97,10 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
             pass
         
         # Draw horizontal bar
-        bar_y = block_y + block_height // 2
+    bar_y = block_y + block_height // 2
         bar_width = width - 4
         # Log-like perceptual scaling for more movement (compress extremes)
-        level_disp = np.power(level, 0.75)
+    level_disp = np.power(level, 0.7)
         bar_length = int(level_disp * bar_width)
         
         # Determine color based on level
@@ -127,3 +141,12 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
             stdscr.addstr(bar_y, width - 6, pct_str, curses.color_pair(7))
         except curses.error:
             pass
+
+        # Draw peak marker (triangle) above bar center line if space
+        peak_level = state['peaks'][idx]
+        peak_len = int(np.power(peak_level, 0.7) * bar_width)
+        if peak_len > 0 and peak_len < bar_width:
+            try:
+                stdscr.addch(bar_y - 1 if block_height > 3 else bar_y, 2 + peak_len, ord('▲'), curses.color_pair(6))
+            except curses.error:
+                pass
