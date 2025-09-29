@@ -1,4 +1,4 @@
-"""Spectrum visualizer - spectrum analyzer with peak indicators."""
+"""Spectrum visualizer - thin bars with gaps like pro audio equipment."""
 
 import numpy as np
 import curses
@@ -7,14 +7,16 @@ from .base import compute_frequency_bars
 
 def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset: int,
                   get_color_func, apply_smoothing_func, state: dict):
-    """Draw spectrum analyzer with peaks and decay."""
-    bar_heights = compute_frequency_bars(audio_data, width)
+    """Draw spectrum analyzer with thin bars and gaps."""
+    # Use fewer bars (half width) with gaps between
+    num_bars = width // 2
+    bar_heights = compute_frequency_bars(audio_data, num_bars)
     bar_heights = apply_smoothing_func(bar_heights, False)
     
     # Track peak values for spectrum analyzer effect
     if 'peak_values' not in state:
-        state['peak_values'] = np.zeros(width)
-        state['peak_decay'] = np.zeros(width)
+        state['peak_values'] = np.zeros(num_bars)
+        state['peak_decay'] = np.zeros(num_bars)
     
     peak_values = state['peak_values']
     peak_decay = state['peak_decay']
@@ -26,29 +28,35 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
             peak_decay[i] = 0
         else:
             # Peak decays slowly
-            peak_decay[i] += 0.01
+            peak_decay[i] += 0.008
             peak_values[i] = max(0, peak_values[i] - peak_decay[i])
     
-    # Draw bars with peak indicators
-    for col in range(width):
-        height_ratio = bar_heights[col]
-        bar_height = int(height_ratio * height)
-        peak_height = int(peak_values[col] * height)
-        position = col / max(1, width - 1)
-        
-        # Clear column
-        for row in range(height):
+    # Clear entire area
+    for row in range(height):
+        for col in range(width):
             try:
                 stdscr.addch(row + y_offset, col, ord(' '))
             except curses.error:
                 pass
+    
+    # Draw bars with gaps (every other column)
+    for bar_idx in range(num_bars):
+        col = bar_idx * 2  # Leave gap
         
-        # Draw bar
+        if col >= width:
+            break
+        
+        height_ratio = bar_heights[bar_idx]
+        bar_height = int(height_ratio * height)
+        peak_height = int(peak_values[bar_idx] * height)
+        position = bar_idx / max(1, num_bars - 1)
+        
+        # Draw thin bar (single character wide)
         color = get_color_func(height_ratio, position)
         for row in range(height):
             if height - row <= bar_height:
                 try:
-                    stdscr.addch(row + y_offset, col, ord('▆'), color)
+                    stdscr.addch(row + y_offset, col, ord('│'), color)
                 except curses.error:
                     pass
         
@@ -56,7 +64,7 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
         peak_row = height - peak_height
         if 0 <= peak_row < height and peak_height > bar_height:
             try:
-                peak_color = get_color_func(peak_values[col], position)
-                stdscr.addch(peak_row + y_offset, col, ord('▬'), peak_color)
+                peak_color = get_color_func(peak_values[bar_idx], position)
+                stdscr.addch(peak_row + y_offset, col, ord('─'), peak_color)
             except curses.error:
                 pass
