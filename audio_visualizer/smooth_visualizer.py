@@ -5,6 +5,7 @@ import numpy as np
 from typing import Optional
 import math
 from . import visualizers
+from .render import colors as color_mod
 
 
 class SmoothVisualizer:
@@ -16,7 +17,7 @@ class SmoothVisualizer:
         self.current_mode = 0
         self.current_color_scheme = 0
         self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
-        self.color_schemes = ["multicolor", "blue", "green", "red", "rainbow", "fire", "prism"]
+    self.color_schemes = color_mod.SCHEMES
         
         # Initialize curses
         curses.curs_set(0)
@@ -28,7 +29,7 @@ class SmoothVisualizer:
         stdscr.timeout(0)
         
         # Initialize colors
-        self._init_colors()
+    self._init_colors()
         
         # Smoothing - reduced for responsiveness
         self.smoothing_factor = 0.6
@@ -52,10 +53,8 @@ class SmoothVisualizer:
         self.stdscr.refresh()
     
     def _init_colors(self):
-        """Initialize color pairs."""
         if curses.has_colors():
             curses.start_color()
-            # Basic colors
             curses.init_pair(1, curses.COLOR_BLUE, -1)
             curses.init_pair(2, curses.COLOR_CYAN, -1)
             curses.init_pair(3, curses.COLOR_GREEN, -1)
@@ -65,80 +64,8 @@ class SmoothVisualizer:
             curses.init_pair(7, curses.COLOR_WHITE, -1)
     
     def _get_color(self, level: float, position: float = 0.5) -> int:
-        """Get color based on amplitude level and color scheme."""
-        if not curses.has_colors():
-            return 0
-        
-        level = max(0, min(1, level))
         scheme = self.color_schemes[self.current_color_scheme]
-        
-        if scheme == "prism":
-            # Position-based full sweep independent of level
-            if position < 0.16:
-                return curses.color_pair(5)  # Red
-            elif position < 0.32:
-                return curses.color_pair(4)  # Yellow
-            elif position < 0.48:
-                return curses.color_pair(3)  # Green
-            elif position < 0.64:
-                return curses.color_pair(2)  # Cyan
-            elif position < 0.80:
-                return curses.color_pair(1)  # Blue
-            else:
-                return curses.color_pair(6)  # Magenta
-
-        if scheme == "multicolor":
-            # Green -> Yellow -> Red gradient (common in audio visualizers)
-            if level < 0.4:
-                return curses.color_pair(3)  # Green
-            elif level < 0.7:
-                return curses.color_pair(4)  # Yellow
-            else:
-                return curses.color_pair(5)  # Red
-        
-        elif scheme == "blue":
-            if level < 0.3:
-                return curses.color_pair(1)  # Blue
-            elif level < 0.7:
-                return curses.color_pair(2)  # Cyan
-            else:
-                return curses.color_pair(7)  # White
-        
-        elif scheme == "green":
-            if level < 0.5:
-                return curses.color_pair(3)  # Green
-            else:
-                return curses.color_pair(4)  # Yellow
-        
-        elif scheme == "red":
-            if level < 0.5:
-                return curses.color_pair(4)  # Yellow
-            else:
-                return curses.color_pair(5)  # Red
-        
-        elif scheme == "rainbow":
-            # Use position for rainbow effect
-            if position < 0.2:
-                return curses.color_pair(5)  # Red
-            elif position < 0.4:
-                return curses.color_pair(4)  # Yellow
-            elif position < 0.6:
-                return curses.color_pair(3)  # Green
-            elif position < 0.8:
-                return curses.color_pair(2)  # Cyan
-            else:
-                return curses.color_pair(1)  # Blue
-        
-        elif scheme == "fire":
-            # Fire gradient
-            if level < 0.3:
-                return curses.color_pair(5)  # Red
-            elif level < 0.6:
-                return curses.color_pair(4)  # Yellow
-            else:
-                return curses.color_pair(7)  # White
-        
-        return curses.color_pair(3)
+        return color_mod.get_color(level, position, scheme)
     
     def _apply_smoothing(self, values: np.ndarray, use_waveform: bool = False) -> np.ndarray:
         """Apply temporal smoothing."""
