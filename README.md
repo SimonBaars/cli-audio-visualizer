@@ -1,6 +1,28 @@
-# CLI Audio Visualizer
+# CLI Audio Visualizer 🎵📊
+
+> **⚡ v2.0 Released! New stable version with major improvements!**  
+> See [FIXES_APPLIED.md](FIXES_APPLIED.md) for what's new.
 
 A beautiful, cross-platform audio visualizer for your terminal, written in Python. Features multiple visualization modes, colorful output, and excellent compatibility with PulseAudio (Linux), WASAPI (Windows), and CoreAudio (macOS).
+
+---
+
+## 🚀 Quick Start (v2.0 - Stable)
+
+```bash
+# If you have the venv already set up:
+source venv/bin/activate
+./smart_start.sh
+
+# OR run directly:
+python visualizer_stable.py
+```
+
+**New to setup?** See **[QUICKSTART.md](QUICKSTART.md)** for step-by-step instructions.
+
+**Having issues?** The old version had problems - use the new stable version above!
+
+---
 
 ![Demo](https://via.placeholder.com/800x400/1a1a1a/00ff00?text=CLI+Audio+Visualizer+Demo)
 

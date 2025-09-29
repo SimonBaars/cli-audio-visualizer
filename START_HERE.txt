@@ -1,0 +1,102 @@
+================================================================================
+                    CLI AUDIO VISUALIZER v2.0
+                         START HERE!
+================================================================================
+
+Hi! I've completely fixed your audio visualizer. Here's what to do:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPTION 1: SMART START (RECOMMENDED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Just run this:
+
+    ./smart_start.sh
+
+This will:
+  1. Test if audio detection works
+  2. Show you the audio level bars
+  3. Give you options if it doesn't work
+  4. Launch the visualizer
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPTION 2: DIRECT START
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you just want to run it:
+
+    source venv/bin/activate
+    python visualizer_stable.py
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IF YOU DON'T SEE AUDIO BARS MOVING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Your system has a monitor source available:
+  alsa_output.pci-0000_65_00.6.analog-stereo.monitor
+
+The easiest fix is to use pavucontrol:
+
+  1. Install: sudo pacman -S pavucontrol
+  2. Run the visualizer: python visualizer_stable.py
+  3. In another terminal: pavucontrol
+  4. Go to the "Recording" tab
+  5. Find the Python/visualizer entry
+  6. Change dropdown to: "Monitor of Analog Stereo"
+  7. Watch the bars start moving! 🎵
+
+Alternative - set as default:
+
+    pactl set-default-source alsa_output.pci-0000_65_00.6.analog-stereo.monitor
+    python visualizer_stable.py
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHAT WAS FIXED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Terminal no longer crashes or hangs
+✅ Ctrl+C now works properly
+✅ No more flickering or glitching
+✅ Works when you scroll the terminal
+✅ Better audio detection (auto-finds monitor sources)
+✅ Clear error messages
+
+See FIXES_APPLIED.md for technical details.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CONTROLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SPACE    - Change visualization mode
+Q or ESC - Quit
+
+Modes: bars → spectrum → waveform → blocks
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+QUICKSTART.md       - Step-by-step setup guide
+FIXES_APPLIED.md    - What was fixed
+AUDIO_SETUP.md      - Audio configuration help
+README.md           - Full documentation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+USE THIS:     python visualizer_stable.py  ✅
+NOT THIS:     python visualizer.py          ❌ (old, has bugs)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+That's it! Enjoy your stable audio visualizer! 🎵📊
+
+================================================================================
