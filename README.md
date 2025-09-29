@@ -14,7 +14,6 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 - **Particles & Fun**: Orbiting sparks, pulsing inner ring, radial rays, halo dots, starfield burst particles.
 - **ASCII Toggle**: Instantly switch to minimal glyphs for compatibility or taste.
 - **Persistent Config**: Last mode, color scheme, EQ mode, ASCII flag auto‑restored (`config.json`).
- - **Backgrounds**: Cycle optional backgrounds (dots, grid, gradient, stars, palm) with `X`.
 - **Silent Startup**: No console spam unless there’s an error.
 
 ## 🎨 Color Schemes
@@ -28,7 +27,6 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 | ENTER | Next color scheme |
 | W | Cycle Adaptive EQ: off → medium (EQ~ default) → strong (EQ+) |
 | B | Toggle ASCII/simple glyphs |
-| X | Cycle background styles |
 | S | Save config |
 | P | Persist config immediately |
 | Q / ESC | Quit |
