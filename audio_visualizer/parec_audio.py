@@ -118,13 +118,11 @@ class ParecAudioCapture:
         if self.running:
             return
         
-        print("\n✓ Starting audio capture with parec")
         if self.monitor_source:
             print(f"  ✓ Capturing from: {self.monitor_source}")
             print(f"  🎵 This will capture your system audio!")
         else:
             print(f"  ⚠ Using default source (may be microphone)")
-        print()
         
         self.running = True
         self.capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
