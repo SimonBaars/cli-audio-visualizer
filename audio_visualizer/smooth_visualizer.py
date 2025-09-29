@@ -16,8 +16,8 @@ class SmoothVisualizer:
         self.running = True
         self.current_mode = 0
         self.current_color_scheme = 0
-    # Added 'bars_simple' as an ASCII-friendly alternative when block glyph coloring is unreliable
-    self.modes = ["bars", "bars_simple", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
+        # Added 'bars_simple' as an ASCII-friendly alternative when block glyph coloring is unreliable
+        self.modes = ["bars", "bars_simple", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
         self.color_schemes = color_mod.SCHEMES
         
         # Initialize curses
