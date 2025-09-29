@@ -192,12 +192,10 @@ class SmoothVisualizer:
             height, width = self.stdscr.getmaxyx()
             audio_active = audio_data is not None and len(audio_data) > 0 and np.max(np.abs(audio_data)) > 0.001
             
-            self.draw_header(width, audio_active, device_name)
-            self.draw_footer(width, height)
-            
-            viz_height = height - 4
+            # No header or footer - full screen visualization
+            viz_height = height
             viz_width = width
-            y_offset = 3
+            y_offset = 0
             
             # Draw visualization
             if audio_data is not None and len(audio_data) > 0:
