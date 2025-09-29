@@ -36,15 +36,15 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
     
     for i in range(num_draw_points + 1):  # +1 to close the circle
         angle = (i / num_draw_points) * 2 * np.pi
-        
+
         # Sample waveform (interpolate between samples)
         waveform_idx = int((i / num_draw_points) * num_samples) % num_samples
-    wave_offset = waveform[waveform_idx] * base_radius * 0.7  # more dramatic
-    # Smooth abrupt radius jumps using previous radius (store in state)
-    prev_r = state.get('prev_radius', base_radius)
-    target_r = base_radius + wave_offset
-    radius = 0.5 * prev_r + 0.5 * target_r
-    state['prev_radius'] = radius
+        wave_offset = waveform[waveform_idx] * base_radius * 0.7  # more dramatic
+        # Smooth abrupt radius jumps using previous radius (store in state)
+        prev_r = state.get('prev_radius', base_radius)
+        target_r = base_radius + wave_offset
+        radius = 0.5 * prev_r + 0.5 * target_r
+        state['prev_radius'] = radius
         
         # Calculate position
         x = int(center_x + radius * np.cos(angle))
