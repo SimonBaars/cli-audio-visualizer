@@ -12,18 +12,6 @@ def draw_bars(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset:
     bar_heights = apply_smoothing_func(bar_heights, False)
     current_bars = (bar_heights * height).astype(int)
     
-    # Debug: Store max level for verification
-    if 'debug_counter' not in state:
-        state['debug_counter'] = 0
-    state['debug_counter'] += 1
-    
-    # Log color distribution every 60 frames for debugging
-    if state['debug_counter'] % 60 == 0 and np.max(bar_heights) > 0:
-        import sys
-        print(f"DEBUG: max bar_height={np.max(bar_heights):.3f}, " + 
-              f"min={np.min(bar_heights):.3f}, " +
-              f"mean={np.mean(bar_heights):.3f}", file=sys.stderr)
-    
     # Always clear and redraw all columns for bars mode to prevent artifacts
     for col in range(min(width, len(current_bars))):
         cur_height = current_bars[col]
