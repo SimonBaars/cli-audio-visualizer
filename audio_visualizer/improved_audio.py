@@ -6,6 +6,7 @@ import queue
 import platform
 import subprocess
 import sys
+import os
 
 
 class ImprovedAudioCapture:
@@ -14,38 +15,16 @@ class ImprovedAudioCapture:
     def __init__(self, sample_rate: int = 44100, chunk_size: int = 2048):
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
-        self.audio_queue = queue.Queue(maxsize=5)
+        self.audio_queue = queue.Queue(maxsize=10)  # Larger queue for smoother playback
         self.stream = None
         self.running = False
         self.device_info = None
         self.device_id = None
+        self.using_monitor = False
+        self.monitor_source_name = None
         
         # Setup device
         self._setup_audio_device()
-    
-    def _list_audio_devices(self):
-        """List all available audio devices with details."""
-        print("\n" + "="*70)
-        print("AVAILABLE AUDIO DEVICES:")
-        print("="*70)
-        
-        devices = sd.query_devices()
-        for i, device in enumerate(devices):
-            if device['max_input_channels'] > 0:
-                marker = ""
-                name_lower = device['name'].lower()
-                
-                # Highlight potentially useful devices
-                if any(keyword in name_lower for keyword in ['monitor', 'loopback', 'stereo mix', 'what u hear', 'wave out']):
-                    marker = " ← SYSTEM AUDIO"
-                elif 'pulse' in name_lower or 'pipewire' in name_lower:
-                    marker = " ← AUDIO SERVER"
-                
-                print(f"  [{i}] {device['name']}{marker}")
-                print(f"      Channels: {device['max_input_channels']}, "
-                      f"Sample Rate: {device['default_samplerate']}")
-        
-        print("="*70 + "\n")
     
     def _find_pipewire_monitor(self):
         """Find PipeWire/PulseAudio monitor source using pactl."""
@@ -59,10 +38,11 @@ class ImprovedAudioCapture:
                         parts = line.split()
                         if len(parts) >= 2:
                             source_name = parts[1]
-                            return source_name
+                            source_id = parts[0]
+                            return source_name, source_id
         except:
             pass
-        return None
+        return None, None
     
     def _setup_audio_device(self):
         """Setup audio device with improved detection."""
@@ -75,95 +55,55 @@ class ImprovedAudioCapture:
             if system == "Linux":
                 print("Searching for system audio capture device...\n")
                 
-                # First, try to find monitor via pactl (most reliable for PipeWire/Pulse)
-                monitor_source = self._find_pipewire_monitor()
+                # Find monitor via pactl (most reliable for PipeWire/Pulse)
+                monitor_source, monitor_id = self._find_pipewire_monitor()
                 
                 if monitor_source:
-                    print(f"✓ Found monitor source via pactl: {monitor_source}")
+                    print(f"✓ Found monitor source: {monitor_source}")
                     
-                    # Now find this device in sounddevice list
+                    # Set the PULSE_SOURCE environment variable - this is the KEY!
+                    # This tells PulseAudio/PipeWire which source to use
+                    os.environ['PULSE_SOURCE'] = monitor_source
+                    print(f"✓ Set PULSE_SOURCE environment variable")
+                    
+                    # Store this for later
+                    self.monitor_source_name = monitor_source
+                    self.using_monitor = True
+                    
+                    # Use the pulse/pipewire device from sounddevice
+                    # These respect the PULSE_SOURCE environment variable
                     for i, device in enumerate(devices):
                         if device['max_input_channels'] <= 0:
                             continue
                         
-                        # Check if the device name contains part of the monitor source name
-                        device_name_clean = device['name'].lower().replace(' ', '').replace('-', '')
-                        source_name_clean = monitor_source.lower().replace('.', '').replace('-', '').replace('_', '')
-                        
-                        # Try to match the device
-                        if 'monitor' in device['name'].lower() or source_name_clean in device_name_clean:
+                        device_name_lower = device['name'].lower()
+                        # Look for pulse or pipewire device
+                        if 'pulse' in device_name_lower or 'pipewire' in device_name_lower:
                             self.device_id = i
                             self.device_info = device
-                            print(f"✓ Matched to device: {device['name']}")
+                            print(f"✓ Using audio server: {device['name']}")
                             break
                     
-                    # If we couldn't match it in sounddevice, try to use it directly as string
+                    # If we didn't find pulse/pipewire, use default
                     if not self.device_info:
-                        try:
-                            # Try using the PulseAudio source name directly
-                            test = sd.query_devices(monitor_source)
-                            if test and test['max_input_channels'] > 0:
-                                self.device_id = monitor_source
-                                self.device_info = test
-                                print(f"✓ Using PulseAudio source directly: {monitor_source}")
-                        except:
-                            pass
-                
-                # If still not found, try searching sounddevice list directly
-                if not self.device_info:
-                    best_device = None
-                    best_score = -1
-                    
-                    for i, device in enumerate(devices):
-                        if device['max_input_channels'] <= 0:
-                            continue
-                        
-                        name_lower = device['name'].lower()
-                        score = 0
-                        
-                        # Score based on keywords
-                        if 'monitor' in name_lower:
-                            score += 10
-                        if 'loopback' in name_lower:
-                            score += 10
-                        if 'analog' in name_lower and 'stereo' in name_lower:
-                            score += 5
-                        if 'pulse' in name_lower or 'pipewire' in name_lower:
-                            score += 2
-                        
-                        if score > best_score:
-                            best_score = score
-                            best_device = (i, device)
-                    
-                    if best_device and best_score >= 5:
-                        self.device_id, self.device_info = best_device
-                        print(f"✓ Found system audio device: {self.device_info['name']}")
-                
-                # Still not found - show help
-                if not self.device_info:
-                    print("⚠ Could not auto-detect monitor device!\n")
-                    print("Available sounddevice inputs:")
-                    for i, device in enumerate(devices):
-                        if device['max_input_channels'] > 0:
-                            print(f"  [{i}] {device['name']}")
-                    
-                    if monitor_source:
-                        print(f"\nPulseAudio/PipeWire monitor found: {monitor_source}")
-                        print("But couldn't match it to a sounddevice. Trying anyway...")
-                        self.device_id = monitor_source
-                        self.device_info = {'name': monitor_source, 'default_samplerate': 48000}
-                    else:
-                        print("\n❌ No monitor sources found via pactl either!")
-                        print("\nSetup instructions:")
-                        print("  1. Run: pavucontrol")
-                        print("  2. In Recording tab, select 'Monitor of...' as input")
-                        print("  OR")
-                        print("  3. Manually specify device with PULSE_SOURCE env var")
-                        
-                        # Fall back to default
                         self.device_info = sd.query_devices(kind='input')
-                        print(f"\nUsing default input: {self.device_info['name']}")
-                        print("(This captures microphone, not system audio)")
+                        print(f"✓ Using default device: {self.device_info['name']}")
+                    
+                    print(f"✓ Will capture system audio from monitor source")
+                else:
+                    print("⚠ No monitor source found via pactl!")
+                    print("\nSetup required:")
+                    print("  1. Option A: Use pavucontrol")
+                    print("     - Install: sudo pacman -S pavucontrol")
+                    print("     - Run: pavucontrol")
+                    print("     - Go to Recording tab and select 'Monitor of...'")
+                    print("  2. Option B: Set default source")
+                    print("     - pactl set-default-source [monitor-source-name]")
+                    
+                    # Fall back to default
+                    self.device_info = sd.query_devices(kind='input')
+                    print(f"\n⚠ Using default input: {self.device_info['name']}")
+                    print("  (This will capture microphone, not system audio)")
             
             elif system == "Windows":
                 print("\nSearching for system audio capture device...")
@@ -176,29 +116,28 @@ class ImprovedAudioCapture:
                             self.device_id = i
                             self.device_info = device
                             print(f"✓ Found: {device['name']}")
+                            self.using_monitor = True
                             break
                 
                 if not self.device_info:
                     print("⚠ No system audio device found!")
                     print("\nTo capture system audio on Windows:")
-                    print("1. Right-click speaker icon → Sounds → Recording tab")
-                    print("2. Right-click empty space → Show Disabled Devices")
-                    print("3. Enable 'Stereo Mix' or 'Wave Out Mix'")
-                    print("4. Set as default recording device")
+                    print("  1. Right-click speaker icon → Sounds → Recording tab")
+                    print("  2. Right-click empty space → Show Disabled Devices")
+                    print("  3. Enable 'Stereo Mix' or 'Wave Out Mix'")
+                    print("  4. Set as default recording device")
                     
                     self.device_info = sd.query_devices(kind='input')
-                    print(f"\nUsing default input: {self.device_info['name']}")
+                    print(f"\n⚠ Using default input: {self.device_info['name']}")
             
             elif system == "Darwin":  # macOS
                 print("\nSearching for audio capture device...")
                 print("⚠ macOS requires additional setup for system audio capture:")
-                print("1. Install BlackHole or Loopback Audio Driver")
-                print("2. Configure Audio MIDI Setup to route system audio")
-                print("   - Create Multi-Output Device")
-                print("   - Add BlackHole and your speakers")
+                print("  1. Install BlackHole: brew install blackhole-2ch")
+                print("  2. Configure Audio MIDI Setup to route system audio")
                 
                 self.device_info = sd.query_devices(kind='input')
-                print(f"\nUsing default input: {self.device_info['name']}")
+                print(f"\n⚠ Using default input: {self.device_info['name']}")
             
             else:
                 self.device_info = sd.query_devices(kind='input')
@@ -215,12 +154,14 @@ class ImprovedAudioCapture:
             
         except Exception as e:
             print(f"Error setting up audio device: {e}")
+            import traceback
+            traceback.print_exc()
             sys.exit(1)
     
     def _audio_callback(self, indata, frames, time_info, status):
         """Callback for audio stream."""
         if status:
-            print(f"Audio callback status: {status}", file=sys.stderr)
+            print(f"Audio status: {status}", file=sys.stderr)
         
         # Convert to mono
         if len(indata.shape) > 1:
@@ -228,17 +169,17 @@ class ImprovedAudioCapture:
         else:
             audio_data = indata.flatten()
         
-        # Only queue if there's actual audio signal
-        if np.max(np.abs(audio_data)) > 1e-6:
+        # Queue all data, not just when there's signal
+        # This prevents the "Waiting for audio" flashing
+        try:
+            self.audio_queue.put_nowait(audio_data.copy())
+        except queue.Full:
+            # Remove old data and add new
             try:
+                self.audio_queue.get_nowait()
                 self.audio_queue.put_nowait(audio_data.copy())
-            except queue.Full:
-                # Remove old data
-                try:
-                    self.audio_queue.get_nowait()
-                    self.audio_queue.put_nowait(audio_data.copy())
-                except queue.Empty:
-                    pass
+            except queue.Empty:
+                pass
     
     def start(self):
         """Start audio capture."""
@@ -247,7 +188,7 @@ class ImprovedAudioCapture:
         
         try:
             # Determine channels
-            channels = 1
+            channels = 2  # Default to stereo
             if isinstance(self.device_info, dict) and 'max_input_channels' in self.device_info:
                 channels = min(2, max(1, self.device_info['max_input_channels']))
             
@@ -266,30 +207,22 @@ class ImprovedAudioCapture:
             self.stream.start()
             self.running = True
             
-            print("✓ Audio capture started!")
-            print("  If you don't see any visualization, make sure:")
-            print("  1. Audio is playing on your system")
-            print("  2. The volume is turned up")
-            print("  3. You've configured the correct audio source\n")
+            print("\n✓ Audio capture started!")
+            if self.using_monitor:
+                print(f"  ✓ Capturing system audio")
+                if self.monitor_source_name:
+                    print(f"     Source: {self.monitor_source_name}")
+                print("  🎵 Play some music and you should see visualization!")
+            else:
+                print("  ⚠ Capturing from microphone (not system audio)")
+                print("  📝 To capture system audio, see setup instructions above")
+            print()
             
         except Exception as e:
             print(f"Error starting audio stream: {e}")
-            print("Trying with default device...")
-            
-            try:
-                self.stream = sd.InputStream(
-                    samplerate=self.sample_rate,
-                    channels=1,
-                    callback=self._audio_callback,
-                    blocksize=self.chunk_size,
-                    dtype=np.float32
-                )
-                self.stream.start()
-                self.running = True
-                print("✓ Started with default device")
-            except Exception as e2:
-                print(f"Failed to start audio capture: {e2}")
-                sys.exit(1)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
     
     def stop(self):
         """Stop audio capture."""

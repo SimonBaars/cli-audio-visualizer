@@ -319,14 +319,18 @@ class CursesVisualizer:
             self.stdscr.erase()
             height, width = self.stdscr.getmaxyx()
             
-            # Draw header
+            # Check if audio is active (has signal above threshold)
             audio_active = audio_data is not None and len(audio_data) > 0 and np.max(np.abs(audio_data)) > 0.001
+            
+            # Draw header
             self.draw_header(width, audio_active, device_name)
             
             # Draw visualization area
             viz_height = height - 4
             viz_width = width
             
+            # Always visualize, even if no signal - just shows empty/flat
+            # This prevents the "Waiting for audio" flashing
             if audio_data is not None and len(audio_data) > 0:
                 mode = self.modes[self.current_mode]
                 
@@ -338,14 +342,6 @@ class CursesVisualizer:
                     self._draw_waveform(audio_data, viz_height, viz_width)
                 elif mode == "blocks":
                     self._draw_blocks(audio_data, viz_height, viz_width)
-            else:
-                # No audio data
-                msg = "Waiting for audio..."
-                try:
-                    self.stdscr.addstr(height // 2, (width - len(msg)) // 2, msg,
-                                     curses.color_pair(7) | curses.A_DIM)
-                except curses.error:
-                    pass
             
             # Draw footer
             self.draw_footer(width, height)
