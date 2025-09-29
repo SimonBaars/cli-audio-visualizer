@@ -16,17 +16,18 @@ class SmoothVisualizer:
         self.running = True
         self.current_mode = 0
         self.current_color_scheme = 0
-        # Added 'bars_simple' as an ASCII-friendly alternative when block glyph coloring is unreliable
-    # Removed redundant bars_simple; ASCII mode handled via global toggle now
-    self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels", "radial_burst"]
+        # Mode list (bars_simple removed; ASCII handled via toggle)
+        self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels", "radial_burst"]
+        self.color_schemes = color_mod.SCHEMES
+        # State dict must exist before loading config
+        self.viz_state = {}
         # Persistent config
         self.config_path = 'config.json'
         self._load_config()
-        # Apply persisted indices if valid
+        # Clamp restored indices
         self.current_mode = min(self.current_mode, len(self.modes) - 1)
-        self.current_color_scheme = min(self.current_color_scheme, len(self.color_schemes) - 1) if hasattr(self, 'color_schemes') else 0
-        self.simple_ascii = self.viz_state.get('simple_ascii', False) if hasattr(self, 'viz_state') else False
-        self.color_schemes = color_mod.SCHEMES
+        self.current_color_scheme = min(self.current_color_scheme, len(self.color_schemes) - 1)
+        self.simple_ascii = self.viz_state.get('simple_ascii', False)
         
         # Initialize curses
         curses.curs_set(0)
@@ -54,8 +55,7 @@ class SmoothVisualizer:
         self.prev_bars = None
         self.mode_changed = False
         
-        # State dict for visualizers
-        self.viz_state = {}
+    # (viz_state already initialized earlier)
         
         # Clear once at start
         self.stdscr.clear()
