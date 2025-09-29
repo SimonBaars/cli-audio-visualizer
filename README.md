@@ -26,7 +26,6 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 | SPACE | Next visualization mode |
 | ENTER | Next color scheme |
 | W | Cycle Adaptive EQ: off → medium (EQ~ default) → strong (EQ+) |
-| (removed) | Former F (tilt flatten) — now always uses balanced spectrum compensation |
 | B | Toggle ASCII/simple glyphs |
 | S | Save config |
 | P | Persist config immediately |
