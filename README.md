@@ -28,7 +28,6 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 | W | Cycle Adaptive EQ: off → medium (EQ~ default) → strong (EQ+) |
 | B | Toggle ASCII/simple glyphs |
 | S | Save config |
-| P | Persist config immediately |
 | Q / ESC | Quit |
 
 Header flags: `FLAT`, `EQ~`, `EQ+`, `ASCII` indicate active toggles.

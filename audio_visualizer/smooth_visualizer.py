@@ -144,7 +144,7 @@ class SmoothVisualizer:
                 self.stdscr.move(height - 1, 0)
                 self.stdscr.clrtoeol()
                 
-                controls = "[SPACE] Mode  [ENTER] Color  [B] ASCII  [W] EQ  [S] Save Config  [P] Save  [Q] Quit"
+                controls = "[SPACE] Mode  [ENTER] Color  [B] ASCII  [W] EQ  [S] Save Config  [Q] Quit"
                 self.stdscr.addstr(height - 1, (width - len(controls)) // 2, controls,
                                  curses.color_pair(4))
             except curses.error:
@@ -261,9 +261,7 @@ class SmoothVisualizer:
                 self.simple_ascii = self.viz_state['simple_ascii']
                 self.prev_width = 0
                 self.prev_height = 0
-            elif key == ord('p') or key == ord('P'):
-                # Persist current config immediately
-                self._save_config()
+            # Removed: 'P' key (redundant with S)
         
         except curses.error:
             pass
