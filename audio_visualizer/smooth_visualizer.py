@@ -3,7 +3,6 @@
 import curses
 import numpy as np
 from typing import Optional
-import math
 from . import visualizers
 from .render import colors as color_mod
 
@@ -167,7 +166,12 @@ class SmoothVisualizer:
                 
                 # Clear state on mode change
                 if self.mode_changed:
-                    self.viz_state = {}
+                    # Preserve user preference flags while clearing per-mode transient data
+                    persistent_keys = {
+                        'adaptive_eq', 'adaptive_eq_mode', 'adaptive_eq_strength', 'simple_ascii'
+                    }
+                    preserved = {k: v for k, v in self.viz_state.items() if k in persistent_keys}
+                    self.viz_state = preserved
                     visualizers.base.clear_area(self.stdscr, y_offset, viz_height, viz_width)
                     self.mode_changed = False
                 
