@@ -9,6 +9,7 @@ minimal cosmic look.
 import numpy as np
 import curses
 from audio_visualizer.dsp.bars import compute_frequency_bars
+from audio_visualizer.dsp.adaptive_eq import apply_adaptive_eq
 
 
 def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset: int,
@@ -27,18 +28,7 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
     # Use some bands only to derive energy; we don't draw them directly anymore.
     num_energy_bands = 96
     bands = compute_frequency_bars(audio_data, num_energy_bands, sample_rate=44100)
-    if state.get('adaptive_eq'):
-        run_mean = state.get('adaptive_eq_mean')
-        if run_mean is None or len(run_mean) != len(bands):
-            run_mean = np.copy(bands)
-        else:
-            run_mean = 0.995 * run_mean + 0.005 * bands
-        eq_strength = state.get('adaptive_eq_strength', 0.65)
-        adj = bands / (run_mean + 1e-6)
-        if np.max(adj) > 0:
-            adj /= np.max(adj)
-        bands = (1 - eq_strength) * bands + eq_strength * adj
-        state['adaptive_eq_mean'] = run_mean
+    bands = apply_adaptive_eq(bands, state)
     bands = apply_smoothing_func(bands, False)
     state['last_bar_values'] = bands.copy()
 

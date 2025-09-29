@@ -3,6 +3,7 @@
 import numpy as np
 import curses
 from audio_visualizer.dsp.bars import compute_frequency_bars
+from audio_visualizer.dsp.adaptive_eq import apply_adaptive_eq
 
 
 def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset: int,
@@ -11,18 +12,7 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
     # Use fewer bars (half width) with gaps between
     num_bars = max(1, width // 2)
     bar_heights = compute_frequency_bars(audio_data, num_bars, sample_rate=44100)
-    if state.get('adaptive_eq'):
-        run_mean = state.get('adaptive_eq_mean')
-        if run_mean is None or len(run_mean) != len(bar_heights):
-            run_mean = np.copy(bar_heights)
-        else:
-            run_mean = 0.995 * run_mean + 0.005 * bar_heights
-        eq_strength = state.get('adaptive_eq_strength', 0.65)
-        adj = bar_heights / (run_mean + 1e-6)
-        if np.max(adj) > 0:
-            adj /= np.max(adj)
-        bar_heights = (1 - eq_strength) * bar_heights + eq_strength * adj
-        state['adaptive_eq_mean'] = run_mean
+    bar_heights = apply_adaptive_eq(bar_heights, state)
     bar_heights = apply_smoothing_func(bar_heights, False)
     # Light spatial neighbor smoothing for less jagged high end (responsive attack retained)
     if len(bar_heights) > 4:
