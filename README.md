@@ -6,18 +6,8 @@
 
 Real‑time, flashy, terminal audio visualization powered by system audio capture (PulseAudio/PipeWire on Linux, WASAPI loopback on Windows, sounddevice input/loopback on macOS) and a bunch of lovingly over‑tuned DSP & effects.
 
-## ✨ Highlights
-
-- **7 Modes**: `bars`, `spectrum`, `waveform`, `mirror_circular`, `circular_wave` (now with sparks, rays & halo), `levels` (vertical reactive meters), `radial_burst` (starfield).
-- **Adaptive DSP**: Log‑spaced bands (20 Hz–20 kHz), tilt compensation, noise floor suppression, gamma + adaptive EQ (3 strengths, medium enabled by default).
-- **Smooth + Responsive**: Temporal + spatial smoothing that keeps punchy attacks while taming HF jitter.
-- **Particles & Fun**: Orbiting sparks, pulsing inner ring, radial rays, halo dots, starfield burst particles.
-- **ASCII Toggle**: Instantly switch to minimal glyphs for compatibility or taste.
-- **Persistent Config**: Last mode, color scheme, EQ mode, ASCII flag auto‑restored (`config.json`).
-- **Silent Startup**: No console spam unless there’s an error.
-
-## 🎨 Color Schemes
-`multicolor`, `blue`, `green`, `red`, `rainbow`, `fire`, `prism`, `heat`, `ocean` (cycled with ENTER).
+## ✨ How To Use
+Check out the `releases` section for binaries for the latest version: https://github.com/SimonBaars/cli-audio-visualizer/releases
 
 ## ⌨ Controls
 
@@ -30,9 +20,7 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 | S | Save config |
 | Q / ESC | Quit |
 
-Header flags: `FLAT`, `EQ~`, `EQ+`, `ASCII` indicate active toggles.
-
-## 🚀 Install
+## 🚀 Execute For Development
 
 ```bash
 git clone https://github.com/yourusername/cli-audio-visualizer.git
