@@ -10,7 +10,7 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 - **Particles & Fun**: Orbiting sparks, pulsing inner ring, radial rays, halo dots, starfield burst particles.
 - **ASCII Toggle**: Instantly switch to minimal glyphs for compatibility or taste.
 - **Persistent Config**: Last mode, color scheme, EQ mode, ASCII flag auto‑restored (`config.json`).
-- **Snapshots**: Press `S` to dump current raw bars / levels to `./snapshots/*.json` for analysis.
+-<!-- Snapshot feature removed: S now just saves config -->
 - **Silent Startup**: No console spam unless there’s an error.
 
 ## 🎨 Color Schemes
@@ -25,7 +25,7 @@ Real‑time, flashy, terminal audio visualization powered by system audio captur
 | W | Cycle Adaptive EQ: off → medium (EQ~ default) → strong (EQ+) |
 | (removed) | Former F (tilt flatten) — now always uses balanced spectrum compensation |
 | B | Toggle ASCII/simple glyphs |
-| S | Snapshot (bars / levels JSON) + save config |
+| S | Save config (was Snapshot) |
 | P | Persist config immediately |
 | Q / ESC | Quit |
 
@@ -74,18 +74,7 @@ Windows – ensure an output device supports loopback (most do). No extra setup 
 
 macOS – to capture system output directly, install a virtual device like [BlackHole](https://github.com/ExistentialAudio/BlackHole) and set it as an output (or aggregate). Otherwise you'll just see mic input.
 
-## 🧪 Snapshots / Analysis
-Snapshots land in `snapshots/` and include:
-```json
-{
-	"mode": "bars",
-	"bars": [...],
-	"distribution": {"low_mean": ..., "high_mean": ...},
-	// historical: "flatten" removed
-	"color_scheme": "multicolor"
-}
-```
-Great for tuning bar distribution offline.
+<!-- Snapshot/analysis JSON output removed. -->
 
 ## 🔧 Internals (Quick Tour)
 

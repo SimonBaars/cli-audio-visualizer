@@ -144,7 +144,7 @@ class SmoothVisualizer:
                 self.stdscr.move(height - 1, 0)
                 self.stdscr.clrtoeol()
                 
-                controls = "[SPACE] Mode  [ENTER] Color  [B] ASCII  [F] Flatten  [W] EQ  [S] Snapshot  [P] Save  [Q] Quit"
+                controls = "[SPACE] Mode  [ENTER] Color  [B] ASCII  [W] EQ  [S] Save Config  [P] Save  [Q] Quit"
                 self.stdscr.addstr(height - 1, (width - len(controls)) // 2, controls,
                                  curses.color_pair(4))
             except curses.error:
@@ -230,8 +230,8 @@ class SmoothVisualizer:
                 self.prev_width = 0
                 self.prev_height = 0
             elif key == ord('s') or key == ord('S'):
-                # Snapshot current state to file
-                self._take_snapshot()
+                # Save config (snapshot feature removed)
+                self._save_config()
             elif key == ord('f') or key == ord('F'):
                 # Toggle flatten flag in state
                 self.viz_state['flatten'] = not self.viz_state.get('flatten', False)
@@ -270,29 +270,7 @@ class SmoothVisualizer:
         
         return True
 
-    def _take_snapshot(self):
-        import time, json, os
-        snap = {}
-        mode = self.modes[self.current_mode]
-        if 'last_bar_values' in self.viz_state:
-            from audio_visualizer.visualizers.base import verify_bar_distribution
-            vals = self.viz_state['last_bar_values']
-            snap['bars'] = vals.tolist()
-            snap['distribution'] = verify_bar_distribution(vals)
-        if 'last_levels' in self.viz_state:
-            snap['levels'] = [float(v[1]) for v in self.viz_state['last_levels']]
-        snap['mode'] = mode
-        snap['color_scheme'] = self.color_schemes[self.current_color_scheme]
-        snap['flatten'] = self.viz_state.get('flatten', False)
-        os.makedirs('snapshots', exist_ok=True)
-        fname = f"snapshots/{int(time.time())}_{mode}.json"
-        try:
-            with open(fname, 'w') as f:
-                json.dump(snap, f, indent=2)
-        except Exception:
-            pass
-        # Persist config as part of snapshot event for convenience
-        self._save_config()
+    # Snapshot functionality removed: S now directly saves config
 
     # ------------------ Config Persistence ------------------
     def _load_config(self):
