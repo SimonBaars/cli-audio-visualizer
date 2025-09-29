@@ -63,10 +63,17 @@ def compute_frequency_bars(audio_data: np.ndarray, num_bars: int, fft_size: int 
 
     bar_vals = (smoothed.astype(np.float32)) ** 2
 
-    # Remove noise floor (median-based) to prevent constant low plateau on right side
+    # Spectral tilt compensation: boost higher index bars slightly to counteract natural 1/f roll-off
+    if num_bars > 1 and np.any(bar_vals > 0):
+        idx = np.linspace(0, 1, num_bars)
+        # Up to ~+4 dB (factor ~1.6) at the extreme right
+        tilt_gain = 1.0 + 0.6 * (idx ** 1.2)
+        bar_vals *= tilt_gain
+
+    # Noise floor suppression (gentle) without zeroing entire tail
     if np.any(bar_vals > 0):
         median_floor = np.median(bar_vals)
-        bar_vals = np.clip(bar_vals - median_floor * 0.6, 0, None)
+        bar_vals = np.clip(bar_vals - median_floor * 0.3, 0, None)
 
     # Min-max normalize
     max_val = np.max(bar_vals)
