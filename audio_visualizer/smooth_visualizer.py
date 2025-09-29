@@ -6,6 +6,7 @@ from typing import Optional
 import math
 from . import visualizers
 from .render import colors as color_mod
+from .backgrounds import BACKGROUND_NAMES, draw_background
 
 
 class SmoothVisualizer:
@@ -19,7 +20,7 @@ class SmoothVisualizer:
         # Mode list (bars_simple removed; ASCII handled via toggle)
         self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels", "radial_burst"]
         self.color_schemes = color_mod.SCHEMES
-        # State dict must exist before loading config
+    # State dict must exist before loading config
         self.viz_state = {}
         # Persistent config
         self.config_path = 'config.json'
@@ -33,7 +34,8 @@ class SmoothVisualizer:
         # Clamp restored indices
         self.current_mode = min(self.current_mode, len(self.modes) - 1)
         self.current_color_scheme = min(self.current_color_scheme, len(self.color_schemes) - 1)
-        self.simple_ascii = self.viz_state.get('simple_ascii', False)
+    self.simple_ascii = self.viz_state.get('simple_ascii', False)
+    self.background_index = self.viz_state.get('background_index', 0)
         
         # Initialize curses
         curses.curs_set(0)
@@ -170,6 +172,10 @@ class SmoothVisualizer:
                     self.viz_state = {}
                     visualizers.base.clear_area(self.stdscr, y_offset, viz_height, viz_width)
                     self.mode_changed = False
+
+                # Draw background first; mark so modes that do full clear can skip
+                draw_background(self.stdscr, viz_width, viz_height, self.viz_state, self.background_index, self._get_color)
+                self.viz_state['background_drawn'] = True
                 
                 # Adaptive tilt factor for frequency distribution balancing
                 # Adjust after obtaining bars in modes using frequency bars
@@ -261,6 +267,12 @@ class SmoothVisualizer:
                 self.simple_ascii = self.viz_state['simple_ascii']
                 self.prev_width = 0
                 self.prev_height = 0
+            elif key == ord('x') or key == ord('X'):
+                # Cycle background
+                self.background_index = (self.background_index + 1) % len(BACKGROUND_NAMES)
+                self.viz_state['background_index'] = self.background_index
+                self.prev_width = 0
+                self.prev_height = 0
             elif key == ord('p') or key == ord('P'):
                 # Persist current config immediately
                 self._save_config()
@@ -341,7 +353,8 @@ class SmoothVisualizer:
             'current_color_scheme': self.current_color_scheme,
             'adaptive_eq': self.viz_state.get('adaptive_eq', False),
             'adaptive_eq_mode': self.viz_state.get('adaptive_eq_mode', 1),
-            'simple_ascii': self.viz_state.get('simple_ascii', False)
+            'simple_ascii': self.viz_state.get('simple_ascii', False),
+            'background_index': self.background_index
         }
         try:
             with open(self.config_path, 'w') as f:

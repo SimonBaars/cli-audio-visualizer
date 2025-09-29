@@ -16,13 +16,14 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
     if width < 10 or height < 6:
         return
 
-    # Full clear (no trails) for a pristine starfield each frame
-    for row in range(height):
-        try:
-            stdscr.move(y_offset + row, 0)
-            stdscr.clrtoeol()
-        except curses.error:
-            pass
+    # If a background was not drawn, clear; otherwise keep the background
+    if not state.get('background_drawn'):
+        for row in range(height):
+            try:
+                stdscr.move(y_offset + row, 0)
+                stdscr.clrtoeol()
+            except curses.error:
+                pass
 
     # Use some bands only to derive energy; we don't draw them directly anymore.
     num_energy_bands = 96
