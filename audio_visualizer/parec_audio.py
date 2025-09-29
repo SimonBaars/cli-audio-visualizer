@@ -34,14 +34,15 @@ class ParecAudioCapture:
                         parts = line.split()
                         if len(parts) >= 2:
                             self.monitor_source = parts[1]
-                            print(f"✓ Found monitor source: {self.monitor_source}")
+                            # Found monitor source (silent success)
                             return
         except Exception as e:
-            print(f"Error finding monitor source: {e}")
+            # Quietly ignore monitor discovery errors
+            pass
         
         if not self.monitor_source:
-            print("⚠ No monitor source found!")
-            print("  Will try to use default source")
+            # Silent fallback to default source
+            pass
     
     def _capture_loop(self):
         """Capture audio in a separate thread."""
@@ -61,7 +62,7 @@ class ParecAudioCapture:
                 '--latency-msec', '50'  # Low latency
             ])
             
-            print(f"Starting parec: {' '.join(cmd)}")
+            # Suppress starting command output
             
             # Start parec process
             self.process = subprocess.Popen(
@@ -118,11 +119,7 @@ class ParecAudioCapture:
         if self.running:
             return
         
-        if self.monitor_source:
-            print(f"  ✓ Capturing from: {self.monitor_source}")
-            print(f"  🎵 This will capture your system audio!")
-        else:
-            print(f"  ⚠ Using default source (may be microphone)")
+        # Silent start (no informational prints)
         
         self.running = True
         self.capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
