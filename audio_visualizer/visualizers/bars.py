@@ -13,6 +13,9 @@ def draw_bars(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset:
     bar_heights = compute_frequency_bars(audio_data, width, sample_rate=44100)
     bar_heights = apply_smoothing_func(bar_heights, False)
     current_bars = (bar_heights * height).astype(int)
+
+    # Store for snapshot/debug
+    state['last_bar_values'] = bar_heights.copy()
     
     # Always clear and redraw all columns for bars mode to prevent artifacts
     for col in range(min(width, len(current_bars))):
@@ -25,13 +28,16 @@ def draw_bars(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset:
             except curses.error:
                 pass
         
-        # Draw new bar from bottom up
+        # Draw new bar from bottom up with vertical gradient color
         height_ratio = bar_heights[col]
         position = col / max(1, width - 1)
-        color = get_color_func(height_ratio, position)
         
         for row in range(height):
             if height - row <= cur_height:
+                # Relative level within bar (bottom 0 -> top 1)
+                rel_level = (height - row) / max(1, cur_height)
+                # Combine amplitude & vertical position for richer color dynamics
+                color = get_color_func(min(1.0, height_ratio * 0.5 + rel_level * 0.5), position)
                 try:
                     stdscr.addch(row + y_offset, col, ord('█'), color)
                 except curses.error:

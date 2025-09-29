@@ -12,6 +12,7 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
     num_bars = max(1, width // 2)
     bar_heights = compute_frequency_bars(audio_data, num_bars, sample_rate=44100)
     bar_heights = apply_smoothing_func(bar_heights, False)
+    state['last_bar_values'] = bar_heights.copy()
     
     # Track peak values for spectrum analyzer effect
     if 'peak_values' not in state:
@@ -56,12 +57,12 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
         position = bar_idx / max(1, num_bars - 1)
         
         # Draw gradient bar using two glyph regions: solid lower, light upper
-        color = get_color_func(height_ratio, position)
         for row in range(height):
             if height - row <= bar_height:
-                # Relative level inside this bar (0 bottom .. 1 top)
                 rel = (height - row) / max(1, bar_height)
                 glyph = '█' if rel < 0.55 else ('▓' if rel < 0.8 else '░')
+                row_level = min(1.0, (height_ratio * 0.6) + rel * 0.4)
+                color = get_color_func(row_level, position)
                 try:
                     stdscr.addch(row + y_offset, col, ord(glyph), color)
                 except curses.error:

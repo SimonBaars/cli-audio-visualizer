@@ -11,6 +11,7 @@ def draw_mirror_circular(stdscr, audio_data: np.ndarray, height: int, width: int
     num_bars = max(1, width // 2)
     bar_heights = compute_frequency_bars(audio_data, num_bars, sample_rate=44100)
     bar_heights = apply_smoothing_func(bar_heights, False)
+    state['last_bar_values'] = bar_heights.copy()
     center = height // 2
     
     for i in range(num_bars):

@@ -66,6 +66,9 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
     # Clear entire area
     clear_area(stdscr, y_offset, height, width)
     
+    # Store for snapshots
+    state['last_levels'] = [l for l in levels]
+
     # Calculate layout - 3 large blocks
     block_height = height // 3
     
