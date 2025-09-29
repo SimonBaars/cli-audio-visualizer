@@ -16,7 +16,7 @@ class SmoothVisualizer:
         self.current_mode = 0
         self.current_color_scheme = 0
         self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
-        self.color_schemes = ["multicolor", "blue", "green", "red", "rainbow", "fire"]
+    self.color_schemes = ["multicolor", "blue", "green", "red", "rainbow", "fire", "prism"]
         
         # Initialize curses
         curses.curs_set(0)
@@ -72,6 +72,21 @@ class SmoothVisualizer:
         level = max(0, min(1, level))
         scheme = self.color_schemes[self.current_color_scheme]
         
+        if scheme == "prism":
+            # Position-based full sweep independent of level
+            if position < 0.16:
+                return curses.color_pair(5)  # Red
+            elif position < 0.32:
+                return curses.color_pair(4)  # Yellow
+            elif position < 0.48:
+                return curses.color_pair(3)  # Green
+            elif position < 0.64:
+                return curses.color_pair(2)  # Cyan
+            elif position < 0.80:
+                return curses.color_pair(1)  # Blue
+            else:
+                return curses.color_pair(6)  # Magenta
+
         if scheme == "multicolor":
             # Green -> Yellow -> Red gradient (common in audio visualizers)
             if level < 0.4:
@@ -180,7 +195,7 @@ class SmoothVisualizer:
                 self.stdscr.move(height - 1, 0)
                 self.stdscr.clrtoeol()
                 
-                controls = "[SPACE] Mode  [ENTER] Color  [Q] Quit"
+                controls = "[SPACE] Mode  [ENTER] Color  [S] Snapshot  [F] Flatten Tilt  [Q] Quit"
                 self.stdscr.addstr(height - 1, (width - len(controls)) // 2, controls,
                                  curses.color_pair(4))
             except curses.error:
@@ -207,6 +222,11 @@ class SmoothVisualizer:
                     visualizers.base.clear_area(self.stdscr, y_offset, viz_height, viz_width)
                     self.mode_changed = False
                 
+                # Adaptive tilt factor for frequency distribution balancing
+                # Adjust after obtaining bars in modes using frequency bars
+                if 'adaptive_tilt' not in self.viz_state:
+                    self.viz_state['adaptive_tilt'] = 1.0
+
                 if mode == "bars":
                     visualizers.draw_bars(self.stdscr, audio_data, viz_height, viz_width, y_offset,
                                         self._get_color, self._apply_smoothing, self.viz_state)
@@ -257,8 +277,38 @@ class SmoothVisualizer:
                 self.current_color_scheme = (self.current_color_scheme + 1) % len(self.color_schemes)
                 self.prev_width = 0
                 self.prev_height = 0
+            elif key == ord('s') or key == ord('S'):
+                # Snapshot current state to file
+                self._take_snapshot()
+            elif key == ord('f') or key == ord('F'):
+                # Toggle flatten flag in state
+                self.viz_state['flatten'] = not self.viz_state.get('flatten', False)
+                self.prev_width = 0
+                self.prev_height = 0
         
         except curses.error:
             pass
         
         return True
+
+    def _take_snapshot(self):
+        import time, json, os
+        snap = {}
+        mode = self.modes[self.current_mode]
+        if 'last_bar_values' in self.viz_state:
+            from audio_visualizer.visualizers.base import verify_bar_distribution
+            vals = self.viz_state['last_bar_values']
+            snap['bars'] = vals.tolist()
+            snap['distribution'] = verify_bar_distribution(vals)
+        if 'last_levels' in self.viz_state:
+            snap['levels'] = [float(v[1]) for v in self.viz_state['last_levels']]
+        snap['mode'] = mode
+        snap['color_scheme'] = self.color_schemes[self.current_color_scheme]
+        snap['flatten'] = self.viz_state.get('flatten', False)
+        os.makedirs('snapshots', exist_ok=True)
+        fname = f"snapshots/{int(time.time())}_{mode}.json"
+        try:
+            with open(fname, 'w') as f:
+                json.dump(snap, f, indent=2)
+        except Exception:
+            pass

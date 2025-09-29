@@ -10,7 +10,8 @@ def draw_bars(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset:
     """Draw classic frequency bars."""
     if width <= 0:
         return
-    bar_heights = compute_frequency_bars(audio_data, width, sample_rate=44100)
+    flatten = state.get('flatten', False)
+    bar_heights = compute_frequency_bars(audio_data, width, sample_rate=44100, flatten=flatten)
     bar_heights = apply_smoothing_func(bar_heights, False)
     current_bars = (bar_heights * height).astype(int)
 

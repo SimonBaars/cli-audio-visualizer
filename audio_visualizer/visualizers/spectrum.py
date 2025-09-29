@@ -10,7 +10,8 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
     """Draw spectrum analyzer with thin bars and gaps."""
     # Use fewer bars (half width) with gaps between
     num_bars = max(1, width // 2)
-    bar_heights = compute_frequency_bars(audio_data, num_bars, sample_rate=44100)
+    flatten = state.get('flatten', False)
+    bar_heights = compute_frequency_bars(audio_data, num_bars, sample_rate=44100, flatten=flatten)
     bar_heights = apply_smoothing_func(bar_heights, False)
     state['last_bar_values'] = bar_heights.copy()
     
