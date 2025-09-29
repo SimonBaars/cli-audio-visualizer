@@ -15,7 +15,7 @@ def _log_edges(num_bars: int, f_low: float, f_high: float):
 
 
 def compute_frequency_bars(audio_data: np.ndarray, num_bars: int, fft_size: int = DEFAULT_FFT_SIZE,
-                           sample_rate: int = DEFAULT_SAMPLE_RATE, flatten: bool = False) -> np.ndarray:
+                           sample_rate: int = DEFAULT_SAMPLE_RATE) -> np.ndarray:
     if num_bars <= 0:
         return np.array([])
     if fft_size <= 0:
@@ -62,10 +62,10 @@ def compute_frequency_bars(audio_data: np.ndarray, num_bars: int, fft_size: int 
     if np.any(bar_vals > 0):
         floor = np.percentile(bar_vals, 20)
         bar_vals = np.clip(bar_vals - floor * 0.15, 0, None)
-        if not flatten:
-            idx = np.linspace(0, 1, num_bars)
-            tilt_gain = 1.0 + 0.78 * (idx ** 1.15)
-            bar_vals *= tilt_gain
+        # Always apply gentle high-frequency tilt for more perceptual balance
+        idx = np.linspace(0, 1, num_bars)
+        tilt_gain = 1.0 + 0.78 * (idx ** 1.15)
+        bar_vals *= tilt_gain
         baseline = np.mean(bar_vals) * 0.01
         if baseline > 0:
             bar_vals += baseline

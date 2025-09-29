@@ -26,8 +26,7 @@ def draw_radial_burst(stdscr, audio_data: np.ndarray, height: int, width: int, y
 
     # Use some bands only to derive energy; we don't draw them directly anymore.
     num_energy_bands = 96
-    flatten = state.get('flatten', False)
-    bands = compute_frequency_bars(audio_data, num_energy_bands, sample_rate=44100, flatten=flatten)
+    bands = compute_frequency_bars(audio_data, num_energy_bands, sample_rate=44100)
     if state.get('adaptive_eq'):
         run_mean = state.get('adaptive_eq_mean')
         if run_mean is None or len(run_mean) != len(bands):

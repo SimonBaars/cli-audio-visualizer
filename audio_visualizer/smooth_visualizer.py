@@ -119,7 +119,7 @@ class SmoothVisualizer:
                 mode_text = f"Mode: {self.modes[self.current_mode].upper()}"
                 color_text = f"Color: {self.color_schemes[self.current_color_scheme].upper()}"
                 flags = []
-                if self.viz_state.get('flatten'): flags.append('FLAT')
+                # Flatten flag removed
                 eq_mode = self.viz_state.get('adaptive_eq_mode', 0)
                 if eq_mode == 1: flags.append('EQ~')
                 elif eq_mode == 2: flags.append('EQ+')
@@ -232,11 +232,7 @@ class SmoothVisualizer:
             elif key == ord('s') or key == ord('S'):
                 # Save config (snapshot feature removed)
                 self._save_config()
-            elif key == ord('f') or key == ord('F'):
-                # Toggle flatten flag in state
-                self.viz_state['flatten'] = not self.viz_state.get('flatten', False)
-                self.prev_width = 0
-                self.prev_height = 0
+            # 'F' flatten toggle removed (legacy)
             elif key == ord('w') or key == ord('W'):
                 # Cycle adaptive EQ mode: 0 (off) -> 1 (medium) -> 2 (strong)
                 mode = self.viz_state.get('adaptive_eq_mode', 0)
@@ -295,7 +291,7 @@ class SmoothVisualizer:
                     legacy_idx -= 1
                 self.current_mode = max(0, min(legacy_idx, len(self.modes) - 1))
             self.current_color_scheme = cfg.get('current_color_scheme', 0)
-            self.viz_state['flatten'] = cfg.get('flatten', False)
+            # Legacy flatten removed; ignore if present
             self.viz_state['adaptive_eq'] = cfg.get('adaptive_eq', False)
             self.viz_state['simple_ascii'] = cfg.get('simple_ascii', False)
             # Infer or load adaptive_eq_mode

@@ -10,8 +10,7 @@ def draw_bars(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset:
     """Draw classic frequency bars."""
     if width <= 0:
         return
-    flatten = state.get('flatten', False)
-    bar_heights = compute_frequency_bars(audio_data, width, sample_rate=44100, flatten=flatten)
+    bar_heights = compute_frequency_bars(audio_data, width, sample_rate=44100)
     # Adaptive EQ (slow running mean to balance distribution over time)
     if state.get('adaptive_eq'):
         run_mean = state.get('adaptive_eq_mean')
