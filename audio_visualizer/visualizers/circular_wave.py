@@ -44,7 +44,7 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
         
         # Calculate position
         x = int(center_x + radius * np.cos(angle))
-    y = int(center_y + radius * np.sin(angle) * 0.6)  # Slightly less vertical squish
+        y = int(center_y + radius * np.sin(angle) * 0.6)  # Slightly less vertical squish
         
         # Get color
         position = i / max(1, num_draw_points - 1)
