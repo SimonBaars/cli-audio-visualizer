@@ -367,12 +367,12 @@ class SmoothVisualizer:
                         pass
     
     def _draw_circular_wave(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
-        """Draw actual circle with mirrored waveform."""
-        # Clear area every frame for this mode
+        """Draw actual circle with waveform modulation."""
+        # Clear area every frame
         self._clear_area(y_offset, height, width)
         
         # Get waveform
-        num_points = 100  # Fixed number of points for smooth circle
+        num_points = 120  # Number of points around the circle
         if len(audio_data) > num_points:
             step = len(audio_data) // num_points
             waveform = audio_data[::step][:num_points]
@@ -385,43 +385,31 @@ class SmoothVisualizer:
         
         center_y = height // 2
         center_x = width // 2
-        radius = min(height // 2 - 3, width // 4)
+        base_radius = min(height // 2 - 2, width // 4)
         
-        # Draw full circle (0 to 2π) with left-right mirroring
+        # Draw full circle (0 to 2π)
         for i in range(num_points):
-            # Left half (0 to π)
-            angle = (i / num_points) * np.pi
-            wave_offset = waveform[i] * radius * 0.6
+            angle = (i / num_points) * 2 * np.pi
             
-            # Calculate modulated radius
-            mod_radius = radius + wave_offset
+            # Modulate radius by waveform
+            wave_offset = waveform[i] * base_radius * 0.4
+            radius = base_radius + wave_offset
             
-            # Top half
-            x_left = int(center_x - mod_radius * np.cos(angle))
-            y_top = int(center_y - mod_radius * np.sin(angle))
+            # Calculate position
+            x = int(center_x + radius * np.cos(angle))
+            y = int(center_y + radius * np.sin(angle) * 0.5)  # Aspect ratio correction
             
-            # Bottom half (mirror)
-            y_bottom = int(center_y + mod_radius * np.sin(angle))
-            
+            # Get color
             position = i / max(1, num_points - 1)
-            color = self._get_color(abs(wave_offset / radius), position)
+            intensity = abs(wave_offset / base_radius) if base_radius > 0 else 0
+            color = self._get_color(intensity, position)
             
-            # Draw left side (top and bottom)
-            for y in [y_top, y_bottom]:
-                if 0 <= x_left < width and 0 <= y < height:
-                    try:
-                        self.stdscr.addch(y + y_offset, x_left, ord('●'), color)
-                    except curses.error:
-                        pass
-            
-            # Right side (mirror of left)
-            x_right = center_x + (center_x - x_left)
-            for y in [y_top, y_bottom]:
-                if 0 <= x_right < width and 0 <= y < height:
-                    try:
-                        self.stdscr.addch(y + y_offset, x_right, ord('●'), color)
-                    except curses.error:
-                        pass
+            # Draw point
+            if 0 <= x < width and 0 <= y < height:
+                try:
+                    self.stdscr.addch(y + y_offset, x, ord('●'), color)
+                except curses.error:
+                    pass
     
     def _draw_levels(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
         """Draw level meters (VU meter style)."""
