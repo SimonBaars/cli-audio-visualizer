@@ -8,7 +8,9 @@ from .base import compute_frequency_bars
 def draw_bars(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset: int, 
               get_color_func, apply_smoothing_func, state: dict):
     """Draw classic frequency bars."""
-    bar_heights = compute_frequency_bars(audio_data, width)
+    if width <= 0:
+        return
+    bar_heights = compute_frequency_bars(audio_data, width, sample_rate=44100)
     bar_heights = apply_smoothing_func(bar_heights, False)
     current_bars = (bar_heights * height).astype(int)
     
