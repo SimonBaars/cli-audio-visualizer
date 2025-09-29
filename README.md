@@ -42,6 +42,25 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### 📦 Single Executable (PyInstaller)
+
+You can bundle a standalone binary (no Python needed) per platform:
+
+```bash
+python -m pip install -r packaging/pyinstaller-requirements.txt
+bash packaging/build.pyinstaller.sh
+```
+
+Output goes to `dist/cli-audio-visualizer-<platform>-<arch>`.
+
+Notes:
+* Linux: relies on PulseAudio/PipeWire libs present on host (parec must be available in PATH).
+* Windows: WASAPI loopback works only when `sounddevice` detects an output device supporting it.
+* macOS: For true system output capture, user still needs a loopback device (e.g. BlackHole); binary will fall back to microphone otherwise.
+* If terminal colors look off in the binary, ensure locale = UTF-8 and a color-capable terminal.
+
+Reproducible build tip: use `python -m venv build-env && source build-env/bin/activate` before installing PyInstaller to isolate toolchain.
+
 ## ▶ Run
 
 ```bash
