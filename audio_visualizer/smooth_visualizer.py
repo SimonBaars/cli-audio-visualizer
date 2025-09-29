@@ -16,7 +16,7 @@ class SmoothVisualizer:
         self.current_mode = 0
         self.current_color_scheme = 0
         self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
-    self.color_schemes = ["multicolor", "blue", "green", "red", "rainbow", "fire", "prism"]
+        self.color_schemes = ["multicolor", "blue", "green", "red", "rainbow", "fire", "prism"]
         
         # Initialize curses
         curses.curs_set(0)
