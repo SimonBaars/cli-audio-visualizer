@@ -74,6 +74,11 @@ def compute_frequency_bars(audio_data: np.ndarray, num_bars: int, fft_size: int 
     if np.any(bar_vals > 0):
         median_floor = np.median(bar_vals)
         bar_vals = np.clip(bar_vals - median_floor * 0.3, 0, None)
+        # Add tiny baseline to avoid complete dropout for naturally quiet regions (e.g., pink noise highs)
+        first_q_mean = np.mean(bar_vals[: max(2, num_bars // 8)]) if num_bars > 0 else 0
+        baseline = first_q_mean * 0.02  # 2% of low-end mean
+        if baseline > 0:
+            bar_vals += baseline
 
     # Min-max normalize
     max_val = np.max(bar_vals)
