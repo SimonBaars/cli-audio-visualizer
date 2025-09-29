@@ -1,102 +1,124 @@
 ================================================================================
-                    CLI AUDIO VISUALIZER v2.0
-                         START HERE!
+                    CLI AUDIO VISUALIZER v2.1
+                 NOW WITH REAL SYSTEM AUDIO CAPTURE!
 ================================================================================
 
-Hi! I've completely fixed your audio visualizer. Here's what to do:
+✅ THE REAL FIX IS NOW APPLIED!
+
+The code now properly uses your monitor source via the PULSE_SOURCE
+environment variable. This is the correct way to capture system audio
+on Linux with PipeWire/PulseAudio.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-OPTION 1: SMART START (RECOMMENDED)
+STEP 1: TEST IT (IMPORTANT!)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Just run this:
-
-    ./smart_start.sh
-
-This will:
-  1. Test if audio detection works
-  2. Show you the audio level bars
-  3. Give you options if it doesn't work
-  4. Launch the visualizer
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-OPTION 2: DIRECT START
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-If you just want to run it:
+First, let's verify it's working:
 
     source venv/bin/activate
-    python visualizer_stable.py
+    python test_audio.py
+
+🎵 PLAY SOME MUSIC DURING THE TEST!
+
+You should see:
+  ✓ Found monitor source: alsa_output.pci-0000_65_00.6.analog-stereo.monitor
+  ✓ Set PULSE_SOURCE environment variable
+  ✓ Using audio server: pipewire
+  ✓ Capturing system audio
+
+And when music plays:
+  Audio: ████████████████ 0.012345
+
+If the bars move with your music → IT'S WORKING! Go to Step 2.
+If not → See TROUBLESHOOTING below.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-IF YOU DON'T SEE AUDIO BARS MOVING
+STEP 2: RUN THE VISUALIZER
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Your system has a monitor source available:
-  alsa_output.pci-0000_65_00.6.analog-stereo.monitor
-
-The easiest fix is to use pavucontrol:
-
-  1. Install: sudo pacman -S pavucontrol
-  2. Run the visualizer: python visualizer_stable.py
-  3. In another terminal: pavucontrol
-  4. Go to the "Recording" tab
-  5. Find the Python/visualizer entry
-  6. Change dropdown to: "Monitor of Analog Stereo"
-  7. Watch the bars start moving! 🎵
-
-Alternative - set as default:
-
-    pactl set-default-source alsa_output.pci-0000_65_00.6.analog-stereo.monitor
     python visualizer_stable.py
+
+Look for:
+  ✓ Capturing system audio
+  ✓ Source: alsa_output.pci-0000_65_00.6.analog-stereo.monitor
+
+🎵 Play music and watch the bars dance!
+
+Controls:
+  SPACE    - Change visualization mode (bars → spectrum → waveform → blocks)
+  Q or ESC - Quit
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 WHAT WAS FIXED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ Terminal no longer crashes or hangs
-✅ Ctrl+C now works properly
-✅ No more flickering or glitching
-✅ Works when you scroll the terminal
-✅ Better audio detection (auto-finds monitor sources)
-✅ Clear error messages
+✅ Now properly sets PULSE_SOURCE environment variable
+✅ Uses PipeWire device (which respects PULSE_SOURCE)
+✅ Captures system audio (not microphone!)
+✅ No more "Waiting for audio" flashing
+✅ Smoother visualization with larger buffer
+✅ No terminal hangs
 
-See FIXES_APPLIED.md for technical details.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-CONTROLS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-SPACE    - Change visualization mode
-Q or ESC - Quit
-
-Modes: bars → spectrum → waveform → blocks
+See REAL_FIX.md for technical details.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-DOCUMENTATION
+TROUBLESHOOTING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-QUICKSTART.md       - Step-by-step setup guide
-FIXES_APPLIED.md    - What was fixed
-AUDIO_SETUP.md      - Audio configuration help
-README.md           - Full documentation
+Problem: "Audio level is very low"
+Solution: Turn up your system volume! The monitor captures at the current
+          output level.
+
+Problem: "Bars barely move"
+Solution: 1. Check system volume is up
+          2. Try bass-heavy music (shows better than speech)
+          3. The visualization auto-scales, give it a moment
+
+Problem: "Still says capturing from microphone"
+Solution: Check the exact output. It should say:
+          "✓ Capturing system audio"
+          If not, try:
+          export PULSE_SOURCE=alsa_output.pci-0000_65_00.6.analog-stereo.monitor
+          python visualizer_stable.py
+
+Problem: "Terminal is glitchy"
+Solution: This should be fixed now! But if not:
+          - Make sure you're using visualizer_stable.py
+          - Try a different terminal (kitty, alacritty)
+          - Resize the terminal to trigger redraw
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-IMPORTANT
+QUICK REFERENCE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-USE THIS:     python visualizer_stable.py  ✅
-NOT THIS:     python visualizer.py          ❌ (old, has bugs)
+Test:      python test_audio.py
+Run:       python visualizer_stable.py
+Help:      cat REAL_FIX.md
+
+Modes:     SPACE to cycle (bars, spectrum, waveform, blocks)
+Quit:      Q or ESC
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-That's it! Enjoy your stable audio visualizer! 🎵📊
+YOUR SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Audio System: PipeWire
+Monitor Source: alsa_output.pci-0000_65_00.6.analog-stereo.monitor
+Status: ✅ Detected and configured
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TL;DR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. source venv/bin/activate
+2. python test_audio.py           # Play music during test!
+3. python visualizer_stable.py    # Enjoy!
 
 ================================================================================
