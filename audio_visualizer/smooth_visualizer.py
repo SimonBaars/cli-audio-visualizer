@@ -144,43 +144,7 @@ class SmoothVisualizer:
             self.previous_values = smoothed
             return smoothed
     
-    def _compute_frequency_bars(self, audio_data: np.ndarray, num_bars: int):
-        """Compute frequency bars with logarithmic spacing."""
-        if len(audio_data) < self.fft_size:
-            audio_data = np.pad(audio_data, (0, self.fft_size - len(audio_data)), 'constant')
-        
-        fft = np.fft.rfft(audio_data[:self.fft_size])
-        magnitude = np.abs(fft)
-        freqs = np.fft.rfftfreq(self.fft_size, 1.0 / 44100)
-        
-        # Logarithmic bins
-        log_bins = np.logspace(np.log10(20), np.log10(20000), num_bars + 1)
-        
-        bar_heights = []
-        for i in range(num_bars):
-            freq_mask = (freqs >= log_bins[i]) & (freqs < log_bins[i + 1])
-            if np.any(freq_mask):
-                bar_heights.append(np.max(magnitude[freq_mask]))
-            else:
-                bar_heights.append(0)
-        
-        bar_heights = np.array(bar_heights)
-        if np.max(bar_heights) > 0:
-            bar_heights = bar_heights / np.max(bar_heights)
-            bar_heights = np.power(bar_heights, 0.7)
-        
-        return bar_heights
-    
-    def _clear_area(self, y_start: int, height: int, width: int):
-        """Clear a rectangular area."""
-        for row in range(height):
-            try:
-                self.stdscr.move(y_start + row, 0)
-                self.stdscr.clrtoeol()
-            except curses.error:
-                pass
-    
-        def draw_header(self, width: int, audio_active: bool, device_name: str = ""):
+    def draw_header(self, width: int, audio_active: bool, device_name: str = ""):
         """Draw header."""
         height, _ = self.stdscr.getmaxyx()
         
@@ -235,21 +199,34 @@ class SmoothVisualizer:
             viz_width = width
             y_offset = 3
             
+            # Draw visualization
             if audio_data is not None and len(audio_data) > 0:
                 mode = self.modes[self.current_mode]
                 
+                # Clear state on mode change
+                if self.mode_changed:
+                    self.viz_state = {}
+                    visualizers.base.clear_area(self.stdscr, y_offset, viz_height, viz_width)
+                    self.mode_changed = False
+                
                 if mode == "bars":
-                    self._draw_bars(audio_data, viz_height, viz_width, y_offset)
+                    visualizers.draw_bars(self.stdscr, audio_data, viz_height, viz_width, y_offset,
+                                        self._get_color, self._apply_smoothing, self.viz_state)
                 elif mode == "spectrum":
-                    self._draw_spectrum(audio_data, viz_height, viz_width, y_offset)
+                    visualizers.draw_spectrum(self.stdscr, audio_data, viz_height, viz_width, y_offset,
+                                            self._get_color, self._apply_smoothing, self.viz_state)
                 elif mode == "waveform":
-                    self._draw_waveform(audio_data, viz_height, viz_width, y_offset)
+                    visualizers.draw_waveform(self.stdscr, audio_data, viz_height, viz_width, y_offset,
+                                            self._get_color, self._apply_smoothing, self.viz_state)
                 elif mode == "mirror_circular":
-                    self._draw_mirror_circular(audio_data, viz_height, viz_width, y_offset)
+                    visualizers.draw_mirror_circular(self.stdscr, audio_data, viz_height, viz_width, y_offset,
+                                                   self._get_color, self._apply_smoothing, self.viz_state)
                 elif mode == "circular_wave":
-                    self._draw_circular_wave(audio_data, viz_height, viz_width, y_offset)
+                    visualizers.draw_circular_wave(self.stdscr, audio_data, viz_height, viz_width, y_offset,
+                                                  self._get_color, self._apply_smoothing, self.viz_state)
                 elif mode == "levels":
-                    self._draw_levels(audio_data, viz_height, viz_width, y_offset)
+                    visualizers.draw_levels(self.stdscr, audio_data, viz_height, viz_width, y_offset,
+                                          self._get_color, self._apply_smoothing, self.viz_state)
             
             self.prev_height = height
             self.prev_width = width
