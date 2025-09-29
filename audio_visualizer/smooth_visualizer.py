@@ -19,7 +19,10 @@ class SmoothVisualizer:
         
         # Initialize curses
         curses.curs_set(0)
-        curses.use_default_colors()
+        try:
+            curses.use_default_colors()
+        except:
+            pass  # Some terminals don't support this
         stdscr.nodelay(1)
         stdscr.timeout(0)
         
