@@ -330,12 +330,11 @@ class SmoothVisualizer:
     
     def _draw_circular_wave(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
         """Draw actual circle with mirrored waveform."""
-        if self.mode_changed:
-            self._clear_area(y_offset, height, width)
-            self.mode_changed = False
+        # Clear area every frame for this mode
+        self._clear_area(y_offset, height, width)
         
         # Get waveform
-        num_points = width // 2
+        num_points = 100  # Fixed number of points for smooth circle
         if len(audio_data) > num_points:
             step = len(audio_data) // num_points
             waveform = audio_data[::step][:num_points]
@@ -348,33 +347,41 @@ class SmoothVisualizer:
         
         center_y = height // 2
         center_x = width // 2
-        radius = min(height // 2 - 2, width // 4)
+        radius = min(height // 2 - 3, width // 4)
         
-        # Draw circle with waveform modulation
+        # Draw full circle (0 to 2π) with left-right mirroring
         for i in range(num_points):
-            angle = (i / num_points) * np.pi  # Half circle (top)
+            # Left half (0 to π)
+            angle = (i / num_points) * np.pi
+            wave_offset = waveform[i] * radius * 0.6
             
-            # Base circle position
-            base_x = int(center_x + radius * np.cos(angle))
-            base_y = int(center_y - radius * np.sin(angle))
+            # Calculate modulated radius
+            mod_radius = radius + wave_offset
             
-            # Modulate by waveform
-            wave_offset = int(waveform[i] * radius * 0.5)
-            mod_x = int(center_x + (radius + wave_offset) * np.cos(angle))
-            mod_y = int(center_y - (radius + wave_offset) * np.sin(angle))
+            # Top half
+            x_left = int(center_x - mod_radius * np.cos(angle))
+            y_top = int(center_y - mod_radius * np.sin(angle))
             
-            # Mirror for bottom half
-            mirror_y_top = mod_y
-            mirror_y_bottom = center_y + (center_y - mod_y)
+            # Bottom half (mirror)
+            y_bottom = int(center_y + mod_radius * np.sin(angle))
             
             position = i / max(1, num_points - 1)
-            color = self._get_color(abs(waveform[i]), position)
+            color = self._get_color(abs(wave_offset / radius), position)
             
-            # Draw top and bottom (mirrored)
-            for y in [mirror_y_top, mirror_y_bottom]:
-                if 0 <= mod_x < width and 0 <= y < height:
+            # Draw left side (top and bottom)
+            for y in [y_top, y_bottom]:
+                if 0 <= x_left < width and 0 <= y < height:
                     try:
-                        self.stdscr.addch(y + y_offset, mod_x, ord('●'), color)
+                        self.stdscr.addch(y + y_offset, x_left, ord('●'), color)
+                    except curses.error:
+                        pass
+            
+            # Right side (mirror of left)
+            x_right = center_x + (center_x - x_left)
+            for y in [y_top, y_bottom]:
+                if 0 <= x_right < width and 0 <= y < height:
+                    try:
+                        self.stdscr.addch(y + y_offset, x_right, ord('●'), color)
                     except curses.error:
                         pass
     
