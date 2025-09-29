@@ -1,4 +1,13 @@
-"""Levels visualizer - large block VU meters for key frequency ranges."""
+"""Levels visualizer - dynamic multi-band VU with animated fall, trails & glow.
+
+Upgrades:
+ - Faster attack / slower decay smoothing for lively movement
+ - Peak hold + falling peak bar
+ - Vertical stacked meter per band (instead of single horizontal)
+ - Trail / fade effect using dim characters
+ - Pulsing color glow influenced by recent energy
+ - Soft dynamic EQ normalizing bands over time for fairness
+"""
 
 import numpy as np
 import curses
@@ -7,7 +16,11 @@ from .base import clear_area
 
 def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset: int,
                 get_color_func, apply_smoothing_func, state: dict):
-    """Draw large block-style VU meters for bass, mid, treble."""
+    """Draw flashy multi-band level meters.
+
+    Layout: each band rendered as a vertical column with animated peak fall and
+    fading trail. Uses adaptive normalization to keep all bands active.
+    """
     # Process FFT for specific frequency ranges
     fft_size = 4096
     if len(audio_data) < fft_size:
@@ -19,13 +32,12 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
     power = (np.abs(fft) ** 2)
     freqs = np.fft.rfftfreq(fft_size, 1.0 / 44100)
     
-    # Define 3 main frequency ranges
-    # Slightly adjusted bands to give highs more energy and split mids
+    # Frequency ranges (tuned for musical balance)
     ranges = [
-        ("BASS", 20, 220),
-        ("LOWMID", 220, 800),
-        ("HIGHMID", 800, 4000),
-        ("TREBLE", 4000, 16000)
+        ("BASS", 20, 180),
+        ("LOWMID", 180, 600),
+        ("HIGHMID", 600, 3500),
+        ("TREBLE", 3500, 16000)
     ]
     
     levels = []
@@ -38,115 +50,149 @@ def draw_levels(stdscr, audio_data: np.ndarray, height: int, width: int, y_offse
             rms = 0.0
         levels.append((name, rms))
     
-    # Adaptive normalization: subtract median (noise floor), then scale
-    raw_vals = np.array([l[1] for l in levels], dtype=np.float32)
-    if np.any(raw_vals > 0):
-        median_floor = np.median(raw_vals)
-        raw_vals = np.clip(raw_vals - median_floor * 0.5, 0, None)
-        max_val = np.max(raw_vals)
-        if max_val > 0:
-            norm_vals = raw_vals / max_val
-        else:
-            norm_vals = raw_vals
-    else:
-        norm_vals = raw_vals
+    # Raw RMS array
+    raw_vals = np.array([l[1] for l in levels], dtype=np.float32) + 1e-9
 
-    # Dynamic range compression (soft knee) to keep movement visible
-    if np.any(norm_vals > 0):
-        norm_vals = np.power(norm_vals, 0.85)
+    # Running reference (slow) for adaptive per-band normalization
+    run_ref = state.get('run_ref')
+    if run_ref is None or len(run_ref) != len(raw_vals):
+        run_ref = raw_vals.copy()
+    else:
+        # Very slow update so sudden spikes show vividly
+        run_ref = 0.995 * run_ref + 0.005 * raw_vals
+    state['run_ref'] = run_ref
+
+    norm_vals = raw_vals / run_ref
+    # Global scaling
+    norm_vals /= (np.max(norm_vals) + 1e-9)
+
+    # Perceptual compression for smoother motion
+    norm_vals = np.power(norm_vals, 0.72)
 
     levels = [(levels[i][0], float(norm_vals[i])) for i in range(len(levels))]
     
-    # Apply smoothing
-    if 'prev_levels' not in state or len(state['prev_levels']) != len(levels):
-        state['prev_levels'] = [l[1] for l in levels]
-        state['peaks'] = [l[1] for l in levels]
-    else:
-        new_levels = []
-        peaks = state.get('peaks', [0]*len(levels))
-        for i, (name, level) in enumerate(levels):
-            prev = state['prev_levels'][i]
-            smoothed_val = 0.6 * prev + 0.4 * level
-            new_levels.append((name, smoothed_val))
-            # Peak decay
-            if level > peaks[i]:
-                peaks[i] = level
-            else:
-                peaks[i] = max(0.0, peaks[i] - 0.01)
-        levels = new_levels
-        state['prev_levels'] = [l[1] for l in levels]
-        state['peaks'] = peaks
+    # Temporal smoothing: fast attack, slower release
+    attack = 0.25
+    release = 0.85
+    prev_levels = state.get('prev_levels')
+    disp_levels = []
+    if prev_levels is None or len(prev_levels) != len(levels):
+        prev_levels = [l[1] for l in levels]
+    for i, (name, val) in enumerate(levels):
+        pv = prev_levels[i]
+        if val > pv:
+            pv = pv * (1 - attack) + val * attack
+        else:
+            pv = pv * release + val * (1 - release)
+        disp_levels.append(pv)
+    state['prev_levels'] = disp_levels
+
+    # Peak hold + fall speed
+    peaks = state.get('peaks')
+    if peaks is None or len(peaks) != len(levels):
+        peaks = disp_levels.copy()
+    fall_speed = state.get('peak_fall_speed', 0.02)
+    for i, val in enumerate(disp_levels):
+        if val > peaks[i]:
+            peaks[i] = val
+        else:
+            peaks[i] = max(0.0, peaks[i] - fall_speed)
+    state['peaks'] = peaks
+
+    # Glow energy (overall recent energy) for pulsing brightness
+    energy = float(np.mean(raw_vals))
+    glow = state.get('glow', energy)
+    glow = 0.97 * glow + 0.03 * energy
+    state['glow'] = glow
+    glow_norm = min(1.0, glow / (np.max(run_ref) + 1e-9))
     
-    # Clear entire area
+    # Clear area
     clear_area(stdscr, y_offset, height, width)
-    
-    # Store for snapshots
-    state['last_levels'] = [l for l in levels]
 
-    # Calculate layout - 3 large blocks
-    block_height = max(3, height // len(levels))
-    
-    for idx, (name, level) in enumerate(levels):
-        block_y = idx * block_height + y_offset
-        
-        # Draw label
-        label = f" {name} "
+    # Store snapshot data
+    state['last_levels'] = list(zip([n for n,_ in levels], disp_levels))
+
+    num_bands = len(disp_levels)
+    # Compute column width per band
+    gap = 2
+    usable_w = max(10, width - (num_bands + 1) * gap)
+    col_w = max(6, usable_w // num_bands)
+    meter_height = max(5, height - 4)
+    base_y = y_offset + height - 2
+
+    # Draw each band as vertical bar
+    for i, (name, _) in enumerate(levels):
+        val = disp_levels[i]
+        peak = peaks[i]
+        position = i / max(1, num_bands - 1)
+        col_x = gap + i * (col_w + gap)
+
+        # Label (centered under column)
+        label = name.center(col_w)
         try:
-            stdscr.addstr(block_y, 2, label, curses.color_pair(7) | curses.A_BOLD)
-        except curses.error:
-            pass
-        
-        # Draw horizontal bar
-    bar_y = block_y + block_height // 2
-        bar_width = width - 4
-        # Log-like perceptual scaling for more movement (compress extremes)
-    level_disp = np.power(level, 0.7)
-        bar_length = int(level_disp * bar_width)
-        
-        # Determine color based on level
-        position = idx / max(1, len(levels) - 1)
-        
-        # Draw filled portion with blocks
-        for x in range(bar_length):
-            x_pos = 2 + x
-            # Calculate level for this position
-            local_level = (x + 1) / bar_width
-            color = get_color_func(local_level, position)
-            
-            try:
-                # Use solid blocks
-                stdscr.addch(bar_y, x_pos, ord('█'), color)
-                # Draw above and below for thickness
-                if block_height > 3:
-                    stdscr.addch(bar_y - 1, x_pos, ord('█'), color)
-                    stdscr.addch(bar_y + 1, x_pos, ord('█'), color)
-            except curses.error:
-                pass
-        
-        # Draw empty portion
-        for x in range(bar_length, bar_width):
-            x_pos = 2 + x
-            try:
-                stdscr.addch(bar_y, x_pos, ord('─'), curses.color_pair(7) | curses.A_DIM)
-                if block_height > 3:
-                    stdscr.addch(bar_y - 1, x_pos, ord('─'), curses.color_pair(7) | curses.A_DIM)
-                    stdscr.addch(bar_y + 1, x_pos, ord('─'), curses.color_pair(7) | curses.A_DIM)
-            except curses.error:
-                pass
-        
-        # Draw percentage
-        percentage = int(level * 100)
-        pct_str = f"{percentage}%"
-        try:
-            stdscr.addstr(bar_y, width - 6, pct_str, curses.color_pair(7))
+            stdscr.addstr(base_y, col_x, label[:col_w], curses.color_pair(7) | curses.A_BOLD)
         except curses.error:
             pass
 
-        # Draw peak marker (triangle) above bar center line if space
-        peak_level = state['peaks'][idx]
-        peak_len = int(np.power(peak_level, 0.7) * bar_width)
-        if peak_len > 0 and peak_len < bar_width:
-            try:
-                stdscr.addch(bar_y - 1 if block_height > 3 else bar_y, 2 + peak_len, ord('▲'), curses.color_pair(6))
-            except curses.error:
-                pass
+        # Height of active segment
+        h_active = int(val * meter_height)
+        peak_row = int(peak * meter_height)
+
+        # Trail memory buffer (per band) for fade effect
+        trails = state.get('trails')
+        if trails is None or len(trails) != num_bands:
+            trails = [np.zeros(meter_height) for _ in range(num_bands)]
+        # Decay trails
+        trails[i] *= 0.88
+        # Set new active region brightness
+        if h_active > 0:
+            trails[i][:h_active] = 1.0
+        state['trails'] = trails
+
+        band_trail = trails[i]
+
+        # Draw from bottom (row 0) upward
+        for level_row in range(meter_height):
+            filled = level_row < h_active
+            trail_val = band_trail[level_row]
+            rel = level_row / max(1, meter_height - 1)
+            # Color intensity combines fill, trail and glow
+            intensity = (0.5 * trail_val + 0.5 * val) * (0.6 + 0.4 * glow_norm)
+            intensity = min(1.0, intensity)
+            color = get_color_func(intensity, position)
+            screen_y = base_y - 1 - level_row
+            if screen_y < y_offset or screen_y >= y_offset + height:
+                continue
+            # Choose glyph based on whether inside active, trail, or empty
+            if filled:
+                glyph = '█'
+            elif trail_val > 0.05:
+                glyph = '▒'
+            else:
+                glyph = ' '
+            # Draw horizontal span for thickness
+            for dx in range(col_w):
+                try:
+                    if glyph != ' ':
+                        stdscr.addch(screen_y, col_x + dx, ord(glyph), color)
+                except curses.error:
+                    pass
+
+        # Peak indicator (falling)
+        if peak_row > 0:
+            py = base_y - 1 - peak_row
+            if y_offset <= py < y_offset + height - 1:
+                try:
+                    peak_color = get_color_func(1.0, position) | curses.A_BOLD
+                    for dx in range(col_w):
+                        stdscr.addch(py, col_x + dx, ord('─'), peak_color)
+                except curses.error:
+                    pass
+
+        # Percentage centered above column top
+        pct = int(val * 100)
+        pct_str = f"{pct:3d}%"
+        try:
+            stdscr.addstr(base_y - meter_height - 1, col_x, pct_str[:col_w], curses.color_pair(7))
+        except curses.error:
+            pass
