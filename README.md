@@ -5,11 +5,11 @@ Real‑time, flashy, terminal audio visualization powered by PulseAudio / PipeWi
 ## ✨ Highlights
 
 - **7 Modes**: `bars`, `spectrum`, `waveform`, `mirror_circular`, `circular_wave` (now with sparks, rays & halo), `levels` (vertical reactive meters), `radial_burst` (starfield).
-- **Adaptive DSP**: Log‑spaced bands (20 Hz–20 kHz), tilt compensation, noise floor suppression, gamma + optional adaptive EQ (3 strengths) & flatten toggle.
+- **Adaptive DSP**: Log‑spaced bands (20 Hz–20 kHz), tilt compensation, noise floor suppression, gamma + optional adaptive EQ (3 strengths).
 - **Smooth + Responsive**: Temporal + spatial smoothing that keeps punchy attacks while taming HF jitter.
 - **Particles & Fun**: Orbiting sparks, pulsing inner ring, radial rays, halo dots, starfield burst particles.
 - **ASCII Toggle**: Instantly switch to minimal glyphs for compatibility or taste.
-- **Persistent Config**: Last mode, color scheme, EQ mode, ASCII/flatten flags auto‑restored (`config.json`).
+- **Persistent Config**: Last mode, color scheme, EQ mode, ASCII flag auto‑restored (`config.json`).
 - **Snapshots**: Press `S` to dump current raw bars / levels to `./snapshots/*.json` for analysis.
 - **Silent Startup**: No console spam unless there’s an error.
 
@@ -23,7 +23,7 @@ Real‑time, flashy, terminal audio visualization powered by PulseAudio / PipeWi
 | SPACE | Next visualization mode |
 | ENTER | Next color scheme |
 | W | Cycle Adaptive EQ: off → medium (EQ~) → strong (EQ+) |
-| F | Toggle frequency tilt flatten (removes low→high bias) |
+| (removed) | Former F (tilt flatten) — now always uses balanced spectrum compensation |
 | B | Toggle ASCII/simple glyphs |
 | S | Snapshot (bars / levels JSON) + save config |
 | P | Persist config immediately |
@@ -72,7 +72,7 @@ Snapshots land in `snapshots/` and include:
 	"mode": "bars",
 	"bars": [...],
 	"distribution": {"low_mean": ..., "high_mean": ...},
-	"flatten": false,
+	// historical: "flatten" removed
 	"color_scheme": "multicolor"
 }
 ```
