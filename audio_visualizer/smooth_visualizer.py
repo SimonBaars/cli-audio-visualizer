@@ -17,7 +17,14 @@ class SmoothVisualizer:
         self.current_mode = 0
         self.current_color_scheme = 0
         # Added 'bars_simple' as an ASCII-friendly alternative when block glyph coloring is unreliable
-        self.modes = ["bars", "bars_simple", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
+        self.modes = ["bars", "bars_simple", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels", "radial_burst"]
+        # Persistent config
+        self.config_path = 'config.json'
+        self._load_config()
+        # Apply persisted indices if valid
+        self.current_mode = min(self.current_mode, len(self.modes) - 1)
+        self.current_color_scheme = min(self.current_color_scheme, len(self.color_schemes) - 1) if hasattr(self, 'color_schemes') else 0
+        self.simple_ascii = self.viz_state.get('simple_ascii', False) if hasattr(self, 'viz_state') else False
         self.color_schemes = color_mod.SCHEMES
         
         # Initialize curses
@@ -176,6 +183,9 @@ class SmoothVisualizer:
                 elif mode == "levels":
                     visualizers.draw_levels(self.stdscr, audio_data, viz_height, viz_width, y_offset,
                                           self._get_color, self._apply_smoothing, self.viz_state)
+                elif mode == "radial_burst":
+                    visualizers.draw_radial_burst(self.stdscr, audio_data, viz_height, viz_width, y_offset,
+                                                  self._get_color, self._apply_smoothing, self.viz_state)
             
             self.prev_height = height
             self.prev_width = width
@@ -221,6 +231,15 @@ class SmoothVisualizer:
                 # Reset running mean so it recalibrates cleanly
                 if 'adaptive_eq_mean' in self.viz_state:
                     del self.viz_state['adaptive_eq_mean']
+            elif key == ord('b') or key == ord('B'):
+                # Toggle global simple ascii flag for bar-style modes
+                self.viz_state['simple_ascii'] = not self.viz_state.get('simple_ascii', False)
+                self.simple_ascii = self.viz_state['simple_ascii']
+                self.prev_width = 0
+                self.prev_height = 0
+            elif key == ord('p') or key == ord('P'):
+                # Persist current config immediately
+                self._save_config()
         
         except curses.error:
             pass
@@ -246,5 +265,38 @@ class SmoothVisualizer:
         try:
             with open(fname, 'w') as f:
                 json.dump(snap, f, indent=2)
+        except Exception:
+            pass
+        # Persist config as part of snapshot event for convenience
+        self._save_config()
+
+    # ------------------ Config Persistence ------------------
+    def _load_config(self):
+        import json, os
+        if not os.path.exists(self.config_path):
+            return
+        try:
+            with open(self.config_path, 'r') as f:
+                cfg = json.load(f)
+            self.current_mode = cfg.get('current_mode', 0)
+            self.current_color_scheme = cfg.get('current_color_scheme', 0)
+            self.viz_state['flatten'] = cfg.get('flatten', False)
+            self.viz_state['adaptive_eq'] = cfg.get('adaptive_eq', False)
+            self.viz_state['simple_ascii'] = cfg.get('simple_ascii', False)
+        except Exception:
+            pass
+
+    def _save_config(self):
+        import json
+        cfg = {
+            'current_mode': self.current_mode,
+            'current_color_scheme': self.current_color_scheme,
+            'flatten': self.viz_state.get('flatten', False),
+            'adaptive_eq': self.viz_state.get('adaptive_eq', False),
+            'simple_ascii': self.viz_state.get('simple_ascii', False)
+        }
+        try:
+            with open(self.config_path, 'w') as f:
+                json.dump(cfg, f, indent=2)
         except Exception:
             pass
