@@ -195,7 +195,7 @@ class SmoothVisualizer:
                 self.stdscr.move(height - 1, 0)
                 self.stdscr.clrtoeol()
                 
-                controls = "[SPACE] Mode  [ENTER] Color  [S] Snapshot  [F] Flatten Tilt  [Q] Quit"
+                controls = "[SPACE] Mode  [ENTER] Color  [S] Snapshot  [F] Flatten Tilt  [W] Adaptive EQ  [Q] Quit"
                 self.stdscr.addstr(height - 1, (width - len(controls)) // 2, controls,
                                  curses.color_pair(4))
             except curses.error:
@@ -285,6 +285,11 @@ class SmoothVisualizer:
                 self.viz_state['flatten'] = not self.viz_state.get('flatten', False)
                 self.prev_width = 0
                 self.prev_height = 0
+            elif key == ord('w') or key == ord('W'):
+                self.viz_state['adaptive_eq'] = not self.viz_state.get('adaptive_eq', False)
+                # Reset running mean so it recalibrates cleanly
+                if 'adaptive_eq_mean' in self.viz_state:
+                    del self.viz_state['adaptive_eq_mean']
         
         except curses.error:
             pass

@@ -11,6 +11,17 @@ def draw_mirror_circular(stdscr, audio_data: np.ndarray, height: int, width: int
     num_bars = max(1, width // 2)
     flatten = state.get('flatten', False)
     bar_heights = compute_frequency_bars(audio_data, num_bars, sample_rate=44100, flatten=flatten)
+    if state.get('adaptive_eq'):
+        run_mean = state.get('adaptive_eq_mean')
+        if run_mean is None or len(run_mean) != len(bar_heights):
+            run_mean = np.copy(bar_heights)
+        else:
+            run_mean = 0.995 * run_mean + 0.005 * bar_heights
+        adj = bar_heights / (run_mean + 1e-6)
+        if np.max(adj) > 0:
+            adj /= np.max(adj)
+        bar_heights = adj
+        state['adaptive_eq_mean'] = run_mean
     bar_heights = apply_smoothing_func(bar_heights, False)
     state['last_bar_values'] = bar_heights.copy()
     center = height // 2

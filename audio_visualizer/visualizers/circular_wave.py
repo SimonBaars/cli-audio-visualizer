@@ -25,7 +25,7 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
     
     center_y = height // 2
     center_x = width // 2
-    base_radius = min(height // 2 - 2, width // 4)
+    base_radius = min(height // 2 - 2, width // 3)
     
     # Calculate perimeter to determine how many points we need
     perimeter = int(2 * np.pi * base_radius * 1.5)  # Overestimate for good coverage
@@ -44,7 +44,7 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
         
         # Calculate position
         x = int(center_x + radius * np.cos(angle))
-        y = int(center_y + radius * np.sin(angle) * 0.5)  # Aspect ratio correction
+    y = int(center_y + radius * np.sin(angle) * 0.6)  # Slightly less vertical squish
         
         # Get color
         position = i / max(1, num_draw_points - 1)
