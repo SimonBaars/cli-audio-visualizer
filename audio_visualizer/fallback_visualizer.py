@@ -17,6 +17,18 @@ class FallbackVisualizer:
         self.height = height
         self.current_mode = "bars"
         self.modes = ["bars", "waveform", "spectrum", "dots", "blocks"]
+        self.color_mode = "dynamic"  # Can be "static", "dynamic", "rainbow", "fire"
+        
+        # Enhanced color palettes
+        self.color_palettes = {
+            "static": ["blue", "green", "yellow", "red"],
+            "dynamic": ["blue", "cyan", "green", "yellow", "orange3", "red", "bright_red"],
+            "rainbow": ["blue", "cyan", "green", "yellow", "orange3", "red", "magenta", "purple"],
+            "fire": ["dark_red", "red", "orange3", "yellow", "bright_yellow", "white"],
+            "ocean": ["navy_blue", "blue", "cyan", "light_cyan", "white"],
+            "forest": ["dark_green", "green", "bright_green", "yellow_green", "yellow"]
+        }
+        
         self.colors = [
             "red", "yellow", "green", "cyan", "blue", "magenta",
             "bright_red", "bright_yellow", "bright_green", 
@@ -26,12 +38,22 @@ class FallbackVisualizer:
         # Smoothing parameters
         self.smoothing_factor = 0.7
         self.previous_values = [0.0] * self.width
+        
+        # Animation parameters for dynamic coloring
+        self.frame_count = 0
     
     def cycle_mode(self):
         """Cycle to the next visualization mode."""
         current_index = self.modes.index(self.current_mode)
         self.current_mode = self.modes[(current_index + 1) % len(self.modes)]
         return self.current_mode
+    
+    def cycle_color_mode(self):
+        """Cycle to the next color mode."""
+        color_modes = list(self.color_palettes.keys())
+        current_index = color_modes.index(self.color_mode)
+        self.color_mode = color_modes[(current_index + 1) % len(color_modes)]
+        return self.color_mode
     
     def set_mode(self, mode: str):
         """Set the visualization mode."""
@@ -49,16 +71,74 @@ class FallbackVisualizer:
         
         return self.previous_values[:len(values)]
     
-    def _get_color_for_level(self, level: float) -> str:
-        """Get color based on amplitude level."""
-        if level < 0.3:
-            return "blue"
-        elif level < 0.6:
-            return "green"
-        elif level < 0.8:
-            return "yellow"
+    def _get_color_for_level(self, level: float, position: int = 0) -> str:
+        """Get color based on amplitude level with smooth transitions and dynamic modes."""
+        self.frame_count += 1
+        
+        # Clamp level to [0, 1]
+        level = max(0, min(1, level))
+        
+        if self.color_mode == "static":
+            # Simple static coloring
+            colors = self.color_palettes["static"]
+        elif self.color_mode == "dynamic":
+            # Enhanced dynamic coloring with more steps
+            colors = self.color_palettes["dynamic"]
+        elif self.color_mode == "rainbow":
+            # Rainbow spectrum
+            colors = self.color_palettes["rainbow"]
+        elif self.color_mode == "fire":
+            # Fire-like colors
+            colors = self.color_palettes["fire"]
+        elif self.color_mode == "ocean":
+            # Ocean-like colors
+            colors = self.color_palettes["ocean"]
+        elif self.color_mode == "forest":
+            # Forest-like colors
+            colors = self.color_palettes["forest"]
         else:
-            return "red"
+            colors = self.color_palettes["dynamic"]
+        
+        # Calculate color index with smooth interpolation
+        if level == 0:
+            return colors[0]
+        
+        # Map level to color index with smooth transitions
+        color_index = level * (len(colors) - 1)
+        color_idx = int(color_index)
+        
+        # For now, return the nearest color (smooth interpolation would require RGB mixing)
+        if color_idx >= len(colors) - 1:
+            return colors[-1]
+        
+        # Add some position-based variation for spectrum mode
+        if self.current_mode == "spectrum" and len(colors) > 4:
+            # Use position to select different hues across the spectrum
+            position_offset = (position % 20) // 5  # Group every 5 positions
+            color_idx = (color_idx + position_offset) % len(colors)
+        
+        return colors[color_idx]
+    
+    def _get_frequency_color(self, freq_index: int, total_freqs: int, level: float) -> str:
+        """Get color for frequency-based visualizations with spectral coloring."""
+        if self.color_mode == "rainbow" or self.current_mode == "spectrum":
+            # Map frequency to color spectrum
+            colors = self.color_palettes["rainbow"]
+            freq_ratio = freq_index / max(1, total_freqs - 1)
+            color_idx = int(freq_ratio * (len(colors) - 1))
+            
+            # Adjust brightness based on level
+            if level < 0.3:
+                # Dim the color for low levels
+                dim_colors = {"blue": "navy_blue", "cyan": "blue", "green": "dark_green", 
+                             "yellow": "orange3", "orange3": "red", "red": "dark_red", 
+                             "magenta": "purple", "purple": "navy_blue"}
+                base_color = colors[color_idx]
+                return dim_colors.get(base_color, base_color)
+            
+            return colors[color_idx]
+        else:
+            return self._get_color_for_level(level, freq_index)
     
     def _simple_fft(self, audio_data: List[float], n_bins: int = None) -> List[float]:
         """Simple FFT implementation for frequency analysis."""
@@ -112,7 +192,7 @@ class FallbackVisualizer:
                     bar_height = int(height_ratio * self.height)
                     
                     if row < bar_height:
-                        color = self._get_color_for_level(height_ratio)
+                        color = self._get_color_for_level(height_ratio, col)
                         line.append("█", style=color)
                     else:
                         line.append(" ")
@@ -191,10 +271,8 @@ class FallbackVisualizer:
                     bar_height = int(height_ratio * self.height)
                     
                     if row < bar_height:
-                        # Use different colors for different frequency ranges
-                        freq_color_index = col // max(1, self.width // len(self.colors))
-                        freq_color_index = min(freq_color_index, len(self.colors) - 1)
-                        color = self.colors[freq_color_index]
+                        # Use enhanced frequency-based coloring
+                        color = self._get_frequency_color(col, self.width, height_ratio)
                         line.append("▆", style=color)
                     else:
                         line.append(" ")

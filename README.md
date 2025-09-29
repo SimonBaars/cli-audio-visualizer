@@ -112,21 +112,22 @@ pactl set-default-source alsa_output.pci-0000_00_1f.3.analog-stereo.monitor
 ```
 
 ### Windows
-The visualizer uses WASAPI by default. Make sure your microphone is set as the default recording device in Windows Sound settings.
+The visualizer uses WASAPI by default. For system audio capture, you may need to enable "Stereo Mix" or use third-party software to route system audio to a virtual input device.
 
 ### macOS
-Uses CoreAudio by default. Ensure your microphone is enabled in System Preferences > Security & Privacy > Microphone.
+Uses CoreAudio by default. For system audio capture, consider using tools like BlackHole or SoundFlower to route system audio to a virtual input device.
 
 ## Troubleshooting
 
 ### No Audio Input Detected
-1. Check that your microphone is working and set as default input device
+1. Check that your system audio is properly configured and accessible
 2. Verify audio permissions are granted to terminal applications
 3. On Linux, ensure PulseAudio is running: `systemctl --user status pulseaudio`
+4. For system audio capture, use loopback devices or monitor sources
 
 ### Performance Issues
 1. Reduce refresh rate by modifying the config file
-2. Close other audio applications that might be using the input device
+2. Close other audio applications that might be using the audio device
 3. Try a different visualization mode (some are more computationally intensive)
 
 ### Installation Issues

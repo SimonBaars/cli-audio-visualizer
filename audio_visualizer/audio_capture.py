@@ -29,18 +29,38 @@ class AudioCapture:
             # Get default input device
             self.device_info = sd.query_devices(kind='input')
             
-            # On Linux, try to find PulseAudio device first
+            # On Linux, try to find system audio monitor/loopback device
             if platform.system() == "Linux":
                 devices = sd.query_devices()
-                pulse_devices = [d for d in devices if 'pulse' in str(d).lower()]
-                if pulse_devices:
-                    # Use the first PulseAudio device found
-                    for i, device in enumerate(devices):
-                        if 'pulse' in str(device).lower() and device['max_input_channels'] > 0:
-                            sd.default.device[0] = i
-                            break
+                
+                # Look for monitor devices (for system audio capture)
+                monitor_devices = []
+                for i, device in enumerate(devices):
+                    device_name = str(device).lower()
+                    if ('monitor' in device_name or 'loopback' in device_name) and device['max_input_channels'] > 0:
+                        monitor_devices.append((i, device))
+                
+                # If monitor devices found, use the first one
+                if monitor_devices:
+                    device_id, device = monitor_devices[0]
+                    sd.default.device[0] = device_id
+                    self.device_info = device
+                    print(f"Using system audio monitor: {device['name']}")
+                else:
+                    # Fall back to PulseAudio default or regular input
+                    pulse_devices = [d for d in devices if 'pulse' in str(d).lower()]
+                    if pulse_devices:
+                        for i, device in enumerate(devices):
+                            if 'pulse' in str(device).lower() and device['max_input_channels'] > 0:
+                                sd.default.device[0] = i
+                                break
+                    print(f"Using audio device: {self.device_info['name']}")
+                    print("Note: For system audio, configure a monitor source with:")
+                    print("  pactl load-module module-loopback latency_msec=1")
+            else:
+                print(f"Using audio device: {self.device_info['name']}")
+                print("Note: For system audio capture, you may need to configure virtual audio routing")
             
-            print(f"Using audio device: {self.device_info['name']}")
             print(f"Sample rate: {self.sample_rate}, Channels: {self.channels}")
             
         except Exception as e:
