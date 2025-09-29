@@ -100,7 +100,7 @@ macOS – to capture system output directly, install a virtual device like [Blac
 
 Apache 2.0 – see `LICENSE`.
 
-Have fun melting your terminal. PRs / ideas welcome.
+Have fun melting your terminal. PRs / ideas welcome. Tuning the visualizations was a pain in the ass, if you can do a better job, please submit a PR!
 
 ## Installation
 
