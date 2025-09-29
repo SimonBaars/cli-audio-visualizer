@@ -276,6 +276,7 @@ class SmoothVisualizer:
     
     def _draw_waveform(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
         """Draw actual time-domain waveform."""
+        # Get waveform data
         if len(audio_data) > width:
             step = len(audio_data) // width
             waveform = audio_data[::step][:width]
@@ -284,45 +285,46 @@ class SmoothVisualizer:
         
         waveform = self._apply_smoothing(waveform, use_waveform=True)
         
+        # Normalize
         if np.max(np.abs(waveform)) > 0:
             waveform = waveform / np.max(np.abs(waveform))
         
+        # Clear on mode change
         if self.mode_changed:
             self._clear_area(y_offset, height, width)
             self.mode_changed = False
         
         middle = height // 2
         
-        # Clear and draw - draw lines from middle to wave point
+        # Clear entire area first
+        self._clear_area(y_offset, height, width)
+        
+        # Draw waveform as connected dots
         for col in range(min(width, len(waveform))):
             wave_value = waveform[col]
-            wave_height = int(wave_value * middle * 0.9)  # Scale to 90% for margin
+            wave_height = int(wave_value * (middle - 1))
             target_row = middle - wave_height
+            
+            # Keep in bounds
+            target_row = max(0, min(height - 1, target_row))
             
             color = self._get_color(abs(wave_value))
             
-            # Draw line from middle to target
-            start_row = min(middle, target_row)
-            end_row = max(middle, target_row)
-            
-            # Clear column first
-            for row in range(height):
-                try:
-                    self.stdscr.addch(row + y_offset, col, ord(' '))
-                except curses.error:
-                    pass
-            
-            # Draw waveform line
-            for row in range(start_row, end_row + 1):
-                try:
-                    if row == middle:
-                        # Center line
-                        self.stdscr.addch(row + y_offset, col, ord('─'), curses.color_pair(7) | curses.A_DIM)
-                    else:
-                        # Waveform
-                        self.stdscr.addch(row + y_offset, col, ord('│'), color)
-                except curses.error:
-                    pass
+            # Draw the waveform point
+            try:
+                self.stdscr.addch(target_row + y_offset, col, ord('█'), color)
+            except curses.error:
+                pass
+        
+        # Draw center line
+        for col in range(width):
+            try:
+                # Only draw if no waveform point there
+                ch = self.stdscr.inch(middle + y_offset, col)
+                if ch == ord(' '):
+                    self.stdscr.addch(middle + y_offset, col, ord('─'), curses.color_pair(7) | curses.A_DIM)
+            except curses.error:
+                pass
     
     def _draw_mirror_circular(self, audio_data: np.ndarray, height: int, width: int, y_offset: int):
         """Draw mirror circular (vertical bars from center)."""
