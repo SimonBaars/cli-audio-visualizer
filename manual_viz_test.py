@@ -213,7 +213,7 @@ def test_circular_wave_manual(audio_data, width=80, height=20):
                 color = "\033[33m"
             else:
                 color = "\033[31m"
-            canvas[y][x] = color + "●" + "\033[0m"
+            canvas[y][x] = color + "█" + "\033[0m"
     
     # Print canvas
     for row in canvas:

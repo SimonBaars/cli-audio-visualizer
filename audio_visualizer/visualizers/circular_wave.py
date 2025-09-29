@@ -31,8 +31,10 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
     perimeter = int(2 * np.pi * base_radius * 1.5)  # Overestimate for good coverage
     num_draw_points = max(perimeter, 200)  # At least 200 points for smooth circle
     
-    # Draw full circle with many points for smoothness
-    for i in range(num_draw_points):
+    # Draw full circle with line segments between points
+    prev_x, prev_y = None, None
+    
+    for i in range(num_draw_points + 1):  # +1 to close the circle
         angle = (i / num_draw_points) * 2 * np.pi
         
         # Sample waveform (interpolate between samples)
@@ -49,9 +51,30 @@ def draw_circular_wave(stdscr, audio_data: np.ndarray, height: int, width: int, 
         intensity = abs(wave_offset / base_radius) if base_radius > 0 else 0
         color = get_color_func(intensity, position)
         
-        # Draw point (use █ for better fill)
+        # Draw current point
         if 0 <= x < width and 0 <= y < height:
             try:
                 stdscr.addch(y + y_offset, x, ord('█'), color)
             except curses.error:
                 pass
+        
+        # Draw line from previous point to current (fill gaps)
+        if prev_x is not None and prev_y is not None:
+            # Simple line drawing - interpolate between points
+            dx = x - prev_x
+            dy = y - prev_y
+            steps = max(abs(dx), abs(dy))
+            
+            if steps > 0:
+                for step in range(steps + 1):
+                    t = step / steps
+                    interp_x = int(prev_x + t * dx)
+                    interp_y = int(prev_y + t * dy)
+                    
+                    if 0 <= interp_x < width and 0 <= interp_y < height:
+                        try:
+                            stdscr.addch(interp_y + y_offset, interp_x, ord('█'), color)
+                        except curses.error:
+                            pass
+        
+        prev_x, prev_y = x, y
