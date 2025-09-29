@@ -1,5 +1,9 @@
 # CLI Audio Visualizer
 
+<p align="center">
+	<img src="pics/spectrum.png" alt="Spectrum Mode" width="820" />
+</p>
+
 Real‑time, flashy, terminal audio visualization powered by system audio capture (PulseAudio/PipeWire on Linux, WASAPI loopback on Windows, sounddevice input/loopback on macOS) and a bunch of lovingly over‑tuned DSP & effects.
 
 ## ✨ Highlights
@@ -134,12 +138,35 @@ python visualizer.py
 
 ## Visualization Modes
 
-1. **BARS** - Classic frequency bars with full spectrum
-2. **SPECTRUM** - Block gradient visualization
-3. **WAVEFORM** - Time-domain oscilloscope view
-4. **MIRROR_CIRCULAR** - Vertical bars mirrored from center
-5. **CIRCULAR_WAVE** - Circle that breathes with music
-6. **LEVELS** - VU meter style horizontal bars
+Below: representative screenshots of each visualization mode.
+
+1. **BARS** – Classic frequency bars with full spectrum
+
+	![Bars](pics/bars.png)
+
+2. **SPECTRUM** – Thin spaced analyzer columns
+
+	![Spectrum](pics/spectrum.png)
+
+3. **WAVEFORM** – Time‑domain oscilloscope curve
+
+	![Waveform](pics/wave.png)
+
+4. **MIRROR_CIRCULAR** – Vertical bars mirrored from center axis
+
+	![Mirror Circular](pics/mirror.png)
+
+5. **CIRCULAR_WAVE** – Circular energy ring with embellishments (halo / sparks / rays)
+
+	![Circular Wave](pics/clock.png)
+
+6. **LEVELS** – VU style multi‑band level meters
+
+	![Levels](pics/levels.png)
+
+7. **RADIAL_BURST** – Music‑reactive starfield burst
+
+	![Radial Burst](pics/radial-burst.png)
 
 ## Color Schemes
 
