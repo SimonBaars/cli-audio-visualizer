@@ -1,198 +1,107 @@
-# CLI Audio Visualizer 🎵📊
+# CLI Audio Visualizer
 
-> **⚡ v2.0 Released! New stable version with major improvements!**  
-> See [FIXES_APPLIED.md](FIXES_APPLIED.md) for what's new.
-
-A beautiful, cross-platform audio visualizer for your terminal, written in Python. Features multiple visualization modes, colorful output, and excellent compatibility with PulseAudio (Linux), WASAPI (Windows), and CoreAudio (macOS).
-
----
-
-## 🚀 Quick Start (v2.0 - Stable)
-
-```bash
-# If you have the venv already set up:
-source venv/bin/activate
-./smart_start.sh
-
-# OR run directly:
-python visualizer_stable.py
-```
-
-**New to setup?** See **[QUICKSTART.md](QUICKSTART.md)** for step-by-step instructions.
-
-**Having issues?** The old version had problems - use the new stable version above!
-
----
-
-![Demo](https://via.placeholder.com/800x400/1a1a1a/00ff00?text=CLI+Audio+Visualizer+Demo)
+A real-time audio visualizer for your terminal that captures system audio and displays it with multiple visualization modes and color schemes.
 
 ## Features
 
-- 🎵 **Real-time audio visualization** from your system's microphone or audio input
-- 🌈 **Multiple visualization modes**: bars, waveform, spectrum analyzer, dots, and blocks
-- 🎨 **Colorful terminal output** with intensity-based color coding
-- ⚡ **Cross-platform compatibility**: Linux (PulseAudio), Windows (WASAPI), macOS (CoreAudio)
-- 🔄 **Easy mode switching** with spacebar
-- 💾 **Configuration persistence** - remembers your last used visualization
-- 🎛️ **Smooth animations** with configurable refresh rate and smoothing
+- **6 Visualization Modes**: bars, spectrum, waveform, mirror_circular, circular_wave, levels
+- **6 Color Schemes**: multicolor (green→yellow→red), blue, green, red, rainbow, fire
+- **System Audio Capture**: Uses parec to capture audio from PulseAudio/PipeWire monitor sources
+- **Smooth Rendering**: Selective screen updates with no flickering
+- **Full Spectrum**: Logarithmic frequency distribution (20 Hz - 20 kHz)
 
 ## Installation
 
-### From PyPI (coming soon)
 ```bash
-pip install cli-audio-visualizer
-```
-
-### From Source
-```bash
-git clone https://github.com/SimonBaars/cli-audio-visualizer.git
+# Clone the repository
+git clone https://github.com/yourusername/cli-audio-visualizer.git
 cd cli-audio-visualizer
+
+# Create virtual environment and install dependencies
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-pip install .
 ```
 
-### System Dependencies
+## Requirements
 
-#### Linux (Ubuntu/Debian)
-```bash
-# For PulseAudio support
-sudo apt-get update
-sudo apt-get install pulseaudio pulseaudio-utils python3-dev portaudio19-dev
+- Python 3.7+
+- PulseAudio or PipeWire (Linux)
+- parec (PulseAudio recorder - usually pre-installed)
 
-# For development headers
-sudo apt-get install python3-pyaudio-dev
-```
-
-#### Linux (Fedora/RedHat)
-```bash
-# For PulseAudio support
-sudo dnf install pulseaudio pulseaudio-utils python3-devel portaudio-devel
-```
-
-#### macOS
-```bash
-# Using Homebrew
-brew install portaudio
-```
-
-#### Windows
-No additional system dependencies required - uses WASAPI by default.
+**Dependencies:**
+- numpy
+- curses (built-in on Linux/macOS)
 
 ## Usage
 
-### Command Line
-After installation, run:
 ```bash
-audio-visualizer
+source venv/bin/activate
+python visualizer.py
 ```
 
-Or if installed from source:
-```bash
-python -m audio_visualizer.main
-```
+**Controls:**
+- **SPACE** - Cycle through visualization modes
+- **ENTER** - Cycle through color schemes
+- **Q** or **ESC** - Quit
 
-### Controls
-- **SPACE**: Cycle through visualization modes
-- **Q** or **ESC**: Quit the application
+## Visualization Modes
 
-### Visualization Modes
+1. **BARS** - Classic frequency bars with full spectrum
+2. **SPECTRUM** - Block gradient visualization
+3. **WAVEFORM** - Time-domain oscilloscope view
+4. **MIRROR_CIRCULAR** - Vertical bars mirrored from center
+5. **CIRCULAR_WAVE** - Circle that breathes with music
+6. **LEVELS** - VU meter style horizontal bars
 
-1. **Bars** - Classic frequency bars visualization
-2. **Waveform** - Time-domain waveform display
-3. **Spectrum** - Frequency spectrum analyzer with color-coded frequency bands
-4. **Dots** - Dot matrix pattern based on frequency and time
-5. **Blocks** - Block-style visualization with variable block heights
+## Color Schemes
 
-## Configuration
+1. **MULTICOLOR** (default) - Green→Yellow→Red (classic audio levels)
+2. **BLUE** - Blue→Cyan→White
+3. **GREEN** - Green→Yellow
+4. **RED** - Yellow→Red
+5. **RAINBOW** - Full spectrum colors
+6. **FIRE** - Red→Yellow→White
 
-The visualizer automatically saves your preferences in `~/.cli-audio-visualizer/config.json`:
+## Linux Audio Setup
 
-```json
-{
-  "last_visualization": "bars",
-  "colors": true,
-  "sensitivity": 1.0,
-  "smoothing": 0.5,
-  "fps": 30
-}
-```
-
-## Audio Input Setup
-
-### Linux with PulseAudio
-The visualizer works best with PulseAudio and will automatically detect and use PulseAudio devices. To monitor system audio output:
+The visualizer automatically detects PulseAudio/PipeWire monitor sources. If it doesn't capture system audio:
 
 ```bash
-# Create a monitor source for your speakers
-pactl load-module module-loopback latency_msec=1
+# Check available sources
+pactl list sources short | grep monitor
 
-# List audio sources
-pactl list sources short
-
-# Set default input to monitor your speakers
-pactl set-default-source alsa_output.pci-0000_00_1f.3.analog-stereo.monitor
+# The visualizer will use: alsa_output.pci-0000_XX_XX.X.analog-stereo.monitor
 ```
 
-### Windows
-The visualizer uses WASAPI by default. For system audio capture, you may need to enable "Stereo Mix" or use third-party software to route system audio to a virtual input device.
-
-### macOS
-Uses CoreAudio by default. For system audio capture, consider using tools like BlackHole or SoundFlower to route system audio to a virtual input device.
+If needed, you can set the default source:
+```bash
+pactl set-default-source alsa_output.pci-0000_XX_XX.X.analog-stereo.monitor
+```
 
 ## Troubleshooting
 
-### No Audio Input Detected
-1. Check that your system audio is properly configured and accessible
-2. Verify audio permissions are granted to terminal applications
-3. On Linux, ensure PulseAudio is running: `systemctl --user status pulseaudio`
-4. For system audio capture, use loopback devices or monitor sources
+**No audio detected:**
+- Ensure audio is playing on your system
+- Check that PulseAudio/PipeWire is running
+- The visualizer will show which source it's using at startup
 
-### Performance Issues
-1. Reduce refresh rate by modifying the config file
-2. Close other audio applications that might be using the audio device
-3. Try a different visualization mode (some are more computationally intensive)
+**Colors not showing:**
+- Make sure your terminal supports colors
+- Try a different terminal emulator (kitty, alacritty, gnome-terminal)
 
-### Installation Issues
-1. Make sure you have Python 3.7+ installed
-2. Install system audio dependencies before Python packages
-3. On Linux, you may need to install additional development packages
+**Low visualization levels:**
+- Turn up your system volume (parec captures at output level)
+- Try bass-heavy music for better visualization
 
-## Development
+## Technical Details
 
-### Setup Development Environment
-```bash
-git clone https://github.com/SimonBaars/cli-audio-visualizer.git
-cd cli-audio-visualizer
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-pip install -e .
-```
-
-### Project Structure
-```
-cli-audio-visualizer/
-├── audio_visualizer/
-│   ├── __init__.py
-│   ├── main.py              # Main application entry point
-│   ├── audio_capture.py     # Cross-platform audio capture
-│   ├── visualizer.py        # Visualization engine
-│   └── config.py           # Configuration management
-├── setup.py
-├── requirements.txt
-└── README.md
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+- **Audio Capture**: Uses `parec` to directly capture from PulseAudio/PipeWire monitor sources
+- **FFT**: 4096-point FFT for high frequency resolution
+- **Frequency Range**: 20 Hz - 20 kHz with logarithmic binning
+- **Rendering**: Curses with selective updates for smooth, flicker-free display
+- **Frame Rate**: 60 FPS
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Built with [Rich](https://github.com/Textualize/rich) for beautiful terminal output
-- Uses [sounddevice](https://github.com/spatialaudio/python-sounddevice) for cross-platform audio capture
-- Powered by [NumPy](https://numpy.org/) for efficient audio processing
+Apache License 2.0 - See LICENSE file for details.
