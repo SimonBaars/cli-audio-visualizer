@@ -26,6 +26,14 @@ def draw_bars(stdscr, audio_data: np.ndarray, height: int, width: int, y_offset:
         bar_heights = (1 - eq_strength) * bar_heights + eq_strength * adj
         state['adaptive_eq_mean'] = run_mean
     bar_heights = apply_smoothing_func(bar_heights, False)
+    # Light spatial neighbor smoothing: stronger on higher-frequency indices
+    if len(bar_heights) > 4:
+        original = bar_heights.copy()
+        for i in range(1, len(bar_heights)-1):
+            frac = i / max(1, len(bar_heights)-1)
+            w = 0.15 + 0.35 * (frac ** 1.1)  # up to ~0.5 at high end
+            local_avg = (original[i-1] + original[i] + original[i+1]) / 3.0
+            bar_heights[i] = (1 - w) * original[i] + w * local_avg
     current_bars = (bar_heights * height).astype(int)
 
     # Store for snapshot/debug

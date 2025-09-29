@@ -25,6 +25,14 @@ def draw_spectrum(stdscr, audio_data: np.ndarray, height: int, width: int, y_off
         bar_heights = (1 - eq_strength) * bar_heights + eq_strength * adj
         state['adaptive_eq_mean'] = run_mean
     bar_heights = apply_smoothing_func(bar_heights, False)
+    # Light spatial neighbor smoothing for less jagged high end (responsive attack retained)
+    if len(bar_heights) > 4:
+        original = bar_heights.copy()
+        for i in range(1, len(bar_heights)-1):
+            frac = i / max(1, len(bar_heights)-1)
+            w = 0.12 + 0.3 * (frac ** 1.1)
+            local_avg = (original[i-1] + original[i] + original[i+1]) / 3.0
+            bar_heights[i] = (1 - w) * original[i] + w * local_avg
     state['last_bar_values'] = bar_heights.copy()
     
     # Track peak values for spectrum analyzer effect
