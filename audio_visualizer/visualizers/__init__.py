@@ -1,7 +1,6 @@
 """Visualization modules."""
 
 from .bars import draw_bars
-from .bars_simple import draw_bars_simple
 from .radial_burst import draw_radial_burst
 from .spectrum import draw_spectrum
 from .waveform import draw_waveform
@@ -11,7 +10,6 @@ from .levels import draw_levels
 
 __all__ = [
     'draw_bars',
-    'draw_bars_simple',
     'draw_radial_burst',
     'draw_spectrum',
     'draw_waveform',

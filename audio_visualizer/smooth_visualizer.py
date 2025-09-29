@@ -17,7 +17,8 @@ class SmoothVisualizer:
         self.current_mode = 0
         self.current_color_scheme = 0
         # Added 'bars_simple' as an ASCII-friendly alternative when block glyph coloring is unreliable
-        self.modes = ["bars", "bars_simple", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels", "radial_burst"]
+    # Removed redundant bars_simple; ASCII mode handled via global toggle now
+    self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels", "radial_burst"]
         # Persistent config
         self.config_path = 'config.json'
         self._load_config()
@@ -171,10 +172,7 @@ class SmoothVisualizer:
 
                 if mode == "bars":
                     visualizers.draw_bars(self.stdscr, audio_data, viz_height, viz_width, y_offset,
-                                        self._get_color, self._apply_smoothing, self.viz_state)
-                elif mode == "bars_simple":
-                    visualizers.draw_bars_simple(self.stdscr, audio_data, viz_height, viz_width, y_offset,
-                                                  self._get_color, self._apply_smoothing, self.viz_state)
+                                           self._get_color, self._apply_smoothing, self.viz_state)
                 elif mode == "spectrum":
                     visualizers.draw_spectrum(self.stdscr, audio_data, viz_height, viz_width, y_offset,
                                             self._get_color, self._apply_smoothing, self.viz_state)
@@ -298,7 +296,18 @@ class SmoothVisualizer:
         try:
             with open(self.config_path, 'r') as f:
                 cfg = json.load(f)
-            self.current_mode = cfg.get('current_mode', 0)
+            legacy_idx = cfg.get('current_mode', 0)
+            saved_name = cfg.get('mode_name')
+            if saved_name and saved_name in self.modes:
+                self.current_mode = self.modes.index(saved_name)
+            else:
+                # Legacy index migration: if it referenced removed bars_simple (index 1), map to bars (0)
+                # All following modes shift left by one.
+                if legacy_idx == 1:
+                    legacy_idx = 0
+                elif legacy_idx > 1:
+                    legacy_idx -= 1
+                self.current_mode = max(0, min(legacy_idx, len(self.modes) - 1))
             self.current_color_scheme = cfg.get('current_color_scheme', 0)
             self.viz_state['flatten'] = cfg.get('flatten', False)
             self.viz_state['adaptive_eq'] = cfg.get('adaptive_eq', False)
@@ -309,7 +318,8 @@ class SmoothVisualizer:
     def _save_config(self):
         import json
         cfg = {
-            'current_mode': self.current_mode,
+            'current_mode': self.current_mode,  # still write index for backward compat
+            'mode_name': self.modes[self.current_mode],
             'current_color_scheme': self.current_color_scheme,
             'flatten': self.viz_state.get('flatten', False),
             'adaptive_eq': self.viz_state.get('adaptive_eq', False),
