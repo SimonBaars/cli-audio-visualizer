@@ -80,8 +80,12 @@ def main():
         print("   The visualizer may capture microphone instead of system audio.")
         print()
     
-    print("Waiting 2 seconds for audio to initialize...")
-    time.sleep(2)
+    # Brief, non-blocking capture warmup attempt (read once with timeout loop)
+    print("Initializing audio (warming up capture)...")
+    start = time.time()
+    # Allow up to 0.5s passive warmup; user not forced to wait a full delay
+    while time.time() - start < 0.5:
+        time.sleep(0.05)
     
     def _run(stdscr):
         app = SmoothAudioVisualizerApp(stdscr)

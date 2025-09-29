@@ -17,7 +17,7 @@ class SmoothVisualizer:
         self.current_mode = 0
         self.current_color_scheme = 0
         self.modes = ["bars", "spectrum", "waveform", "mirror_circular", "circular_wave", "levels"]
-    self.color_schemes = color_mod.SCHEMES
+        self.color_schemes = color_mod.SCHEMES
         
         # Initialize curses
         curses.curs_set(0)
@@ -29,7 +29,7 @@ class SmoothVisualizer:
         stdscr.timeout(0)
         
         # Initialize colors
-    self._init_colors()
+        self._init_colors()
         
         # Smoothing - reduced for responsiveness
         self.smoothing_factor = 0.6
