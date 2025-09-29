@@ -191,29 +191,28 @@ class SmoothVisualizer:
         if self.prev_bars is None or len(self.prev_bars) != len(current_bars):
             self.prev_bars = np.zeros_like(current_bars)
         
+        # Always clear and redraw all columns for bars mode to prevent artifacts
         for col in range(min(width, len(current_bars))):
             cur_height = current_bars[col]
-            prev_height = self.prev_bars[col]
             
-            if cur_height != prev_height:
-                # Clear the entire column first
-                for row in range(height):
+            # Clear the entire column
+            for row in range(height):
+                try:
+                    self.stdscr.addch(row + y_offset, col, ord(' '))
+                except curses.error:
+                    pass
+            
+            # Draw new bar from bottom up
+            height_ratio = bar_heights[col]
+            position = col / max(1, width - 1)
+            color = self._get_color(height_ratio, position)
+            
+            for row in range(height):
+                if height - row <= cur_height:
                     try:
-                        self.stdscr.addch(row + y_offset, col, ord(' '))
+                        self.stdscr.addch(row + y_offset, col, ord('█'), color)
                     except curses.error:
                         pass
-                
-                # Draw new bar from bottom up
-                height_ratio = bar_heights[col]
-                position = col / max(1, width - 1)
-                color = self._get_color(height_ratio, position)
-                
-                for row in range(height):
-                    if height - row <= cur_height:
-                        try:
-                            self.stdscr.addch(row + y_offset, col, ord('█'), color)
-                        except curses.error:
-                            pass
         
         self.prev_bars = current_bars.copy()
     
