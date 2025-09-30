@@ -66,8 +66,10 @@ class WASAPILoopbackCapture:
                 if d.get('max_output_channels', 0) > 0:
                     self.device_name = d.get('name', f'device_{idx}')
                     return idx
-        except Exception:
-            pass
+            # No device found
+            print("Windows audio: No output device found for loopback", file=sys.stderr)
+        except Exception as e:
+            print(f"Windows audio: Error selecting device: {e}", file=sys.stderr)
         return None
 
     def start(self):
@@ -75,6 +77,7 @@ class WASAPILoopbackCapture:
             return
         dev = self._choose_loopback_device()
         if dev is None:
+            print("Windows audio: Cannot start - no device available", file=sys.stderr)
             return
         try:
             settings = None
@@ -112,8 +115,9 @@ class WASAPILoopbackCapture:
                             self.audio_queue.put_nowait(mono)
                         except queue.Empty:
                             pass
-                except Exception:
-                    pass
+                except Exception as e:
+                    if self.running:
+                        print(f"Windows audio: Callback error: {e}", file=sys.stderr)
 
             self.running = True
             self.stream = sd.InputStream(  # type: ignore[attr-defined]
@@ -126,7 +130,8 @@ class WASAPILoopbackCapture:
                 extra_settings=settings
             )
             self.stream.start()
-        except Exception:
+        except Exception as e:
+            print(f"Windows audio: Failed to start stream: {e}", file=sys.stderr)
             self.running = False
             self.stream = None
 
