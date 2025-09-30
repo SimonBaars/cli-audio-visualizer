@@ -201,6 +201,28 @@ class SmoothVisualizer:
                 elif mode == "radial_burst":
                     visualizers.draw_radial_burst(self.stdscr, audio_data, viz_height, viz_width, y_offset,
                                                   self._get_color, self._apply_smoothing, self.viz_state)
+            else:
+                # Show message when no audio data is available
+                msg_lines = [
+                    "No Audio Data",
+                    "",
+                    "Possible causes:",
+                    "- No audio playing",
+                    "- Microphone permission denied (macOS)",
+                    "- No audio device available",
+                    "",
+                    "Check stderr output for details",
+                    "",
+                    "Press Q to quit"
+                ]
+                try:
+                    start_y = (height - len(msg_lines)) // 2
+                    for i, line in enumerate(msg_lines):
+                        x = (width - len(line)) // 2
+                        if 0 <= start_y + i < height and x >= 0:
+                            self.stdscr.addstr(start_y + i, x, line, curses.color_pair(5))
+                except curses.error:
+                    pass
             
             self.prev_height = height
             self.prev_width = width

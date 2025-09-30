@@ -66,8 +66,10 @@ class WASAPILoopbackCapture:
                 if d.get('max_output_channels', 0) > 0:
                     self.device_name = d.get('name', f'device_{idx}')
                     return idx
-        except Exception:
-            pass
+            # No device found
+            print("Windows audio: No output device found for loopback", file=sys.stderr)
+        except Exception as e:
+            print(f"Windows audio: Error selecting device: {e}", file=sys.stderr)
         return None
 
     def start(self):
@@ -75,6 +77,7 @@ class WASAPILoopbackCapture:
             return
         dev = self._choose_loopback_device()
         if dev is None:
+            print("Windows audio: Cannot start - no device available", file=sys.stderr)
             return
         try:
             settings = None
@@ -112,8 +115,9 @@ class WASAPILoopbackCapture:
                             self.audio_queue.put_nowait(mono)
                         except queue.Empty:
                             pass
-                except Exception:
-                    pass
+                except Exception as e:
+                    if self.running:
+                        print(f"Windows audio: Callback error: {e}", file=sys.stderr)
 
             self.running = True
             self.stream = sd.InputStream(  # type: ignore[attr-defined]
@@ -126,7 +130,8 @@ class WASAPILoopbackCapture:
                 extra_settings=settings
             )
             self.stream.start()
-        except Exception:
+        except Exception as e:
+            print(f"Windows audio: Failed to start stream: {e}", file=sys.stderr)
             self.running = False
             self.stream = None
 
@@ -192,14 +197,17 @@ class MacSoundDeviceCapture:
                     self.device_index = idx
                     self.device_name = d.get('name', f'device_{idx}')
                     return
-        except Exception:
-            pass
+            # No device found
+            print("macOS audio: No input device found", file=sys.stderr)
+        except Exception as e:
+            print(f"macOS audio: Error selecting device: {e}", file=sys.stderr)
 
     def start(self):
         if sd is None or self.running:
             return
         self._pick_device()
         if self.device_index is None:
+            print("macOS audio: Cannot start - no device available", file=sys.stderr)
             return
         def callback(indata, frames, time_, status):
             if status:
@@ -224,8 +232,9 @@ class MacSoundDeviceCapture:
                         self.audio_queue.put_nowait(mono)
                     except queue.Empty:
                         pass
-            except Exception:
-                pass
+            except Exception as e:
+                if self.running:
+                    print(f"macOS audio: Callback error: {e}", file=sys.stderr)
         try:
             self.running = True
             self.stream = sd.InputStream(  # type: ignore[attr-defined]
@@ -237,7 +246,9 @@ class MacSoundDeviceCapture:
                 callback=callback
             )
             self.stream.start()
-        except Exception:
+        except Exception as e:
+            print(f"macOS audio: Failed to start stream: {e}", file=sys.stderr)
+            print(f"macOS audio: This may be a microphone permission issue", file=sys.stderr)
             self.running = False
             self.stream = None
 
@@ -272,10 +283,14 @@ def create_audio_capture(sample_rate: int = 44100, chunk_size: int = 1024):
         if sd is not None:
             cap = WASAPILoopbackCapture(sample_rate=sample_rate, chunk_size=chunk_size)
             return cap
+        print("Windows: sounddevice not available, using silent mode", file=sys.stderr)
         return SilentAudioCapture()
     if plat == 'darwin':
         if sd is not None:
             return MacSoundDeviceCapture(sample_rate=sample_rate, chunk_size=chunk_size)
+        print("macOS: sounddevice not available, using silent mode", file=sys.stderr)
+        print("macOS: Install with: pip install sounddevice", file=sys.stderr)
         return SilentAudioCapture()
     # Unknown platform fallback
     return SilentAudioCapture()
+

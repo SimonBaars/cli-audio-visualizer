@@ -93,8 +93,24 @@ macOS – to capture system output directly, install a virtual device like [Blac
 
 ## 🛠 Troubleshooting
 
+**Blank screen or no visualization:**
+
+First, run the diagnostic tool to check your audio setup:
+```bash
+python tools/diagnose_audio.py
+```
+
+This will help identify:
+- Missing audio devices
+- Permission issues (especially on macOS)
+- Missing dependencies
+- Platform-specific configuration problems
+
+**Common issues:**
+
 | Issue | Tip |
 |-------|-----|
+| Blank screen on macOS | Check microphone permissions in System Preferences → Security & Privacy → Privacy → Microphone. Install BlackHole for system audio capture. |
 | No movement | Check system audio playing + correct monitor source exists |
 | Too jittery | Enable medium adaptive EQ (press W) or ASCII mode for lighter rendering |
 | Colors wrong | Try another terminal or disable themes forcing palette |
